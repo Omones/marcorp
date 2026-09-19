@@ -9,12 +9,11 @@
     let h = canvas.height = parent.clientHeight;
 
     const config = {
-        linesCount: 30,          // Немного уменьшили для баланса производительности
-        segments: 90,            
-        amplitude: 100,          
-        speed: 0.006,            
-        waveColor: 'rgba(95, 10, 20, 0.12)', // Бордовый цвет нитей
-        trailLength: 6           // Длина эффекта шлейфа (кол-во кадров в памяти)
+        linesCount: 30,          // Количество нитей в жгуте
+        segments: 90,            // Детализация изгибов
+        amplitude: 100,          // Базовая высота изгиба волны
+        speed: 0.006,            // Скорость движения
+        trailLength: 6           // Длина эффекта шлейфа
     };
 
     const mouse = { x: w / 2, y: h / 2, targetX: w / 2, targetY: h / 2 };
@@ -30,13 +29,13 @@
         mouse.targetY = h / 2;
     });
 
-    // Массив для хранения истории кадров каждой нити (замена забагованного стирания экрана)
+    // Массив для хранения истории кадров каждой нити
     const linesHistory = [];
     for (let i = 0; i < config.linesCount; i++) {
         linesHistory.push([]);
     }
 
-    // Светлая космическая пыль
+    // Бордовая космическая пыль
     const particles = [];
     for(let i = 0; i < 35; i++) {
         particles.push({
@@ -45,7 +44,7 @@
             r: Math.random() * 1.0 + 0.3,
             speedX: Math.random() * 0.2 - 0.1,
             speedY: Math.random() * -0.2 - 0.05,
-            alpha: Math.random() * 0.4 + 0.1
+            alpha: Math.random() * 0.3 + 0.1
         });
     }
 
@@ -58,23 +57,16 @@
     let phase = 0;
 
     function animate() {
-        // Честная очистка холста до полной прозрачности каждый кадр
+        // Полная очистка холста до идеальной прозрачности
         ctx.clearRect(0, 0, w, h);
         
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = 'source-over';
         phase += config.speed;
 
         mouse.x += (mouse.targetX - mouse.x) * 0.05;
         mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-        // 1. Градиент свечения сверху (тоже прозрачный, без черной подложки)
-        let topGrad = ctx.createLinearGradient(0, 0, 0, h * 0.6);
-        topGrad.addColorStop(0, 'rgba(95, 10, 20, 0.12)'); 
-        topGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = topGrad;
-        ctx.fillRect(0, 0, w, h * 0.6);
-
-        // 2. Отрисовка частиц
+        // 1. Отрисовка бордовых частиц (без фонового тумана)
         particles.forEach(p => {
             p.x += p.speedX;
             p.y += p.speedY;
@@ -82,11 +74,11 @@
             if (p.x < 0 || p.x > w) p.x = Math.random() * w;
             
             let waveAlpha = p.alpha * (Math.sin(phase * 2 + p.x * 0.01) * 0.3 + 0.7);
-            ctx.fillStyle = `rgba(95, 10, 20, ${waveAlpha})`; // Частицы теперь тоже бордовые, чтобы сочетаться с белым сайтом
+            ctx.fillStyle = `rgba(95, 10, 20, ${waveAlpha})`; 
             ctx.fillRect(p.x, p.y, p.r * 1.5, p.r * 1.5);
         });
 
-        // 3. Вычисление текущего положения нитей
+        // 2. Вычисление и отрисовка жгута волны
         for (let i = 0; i < config.linesCount; i++) {
             let lineShift = i * 0.08 + Math.sin(i * 0.5) * 0.2; 
             let currentLinePoints = [];
@@ -114,18 +106,19 @@
                 currentLinePoints.push({ x, y });
             }
 
-            // Добавляем текущий кадр нити в историю и удаляем старые кадры
+            // Запись истории кадров
             linesHistory[i].push(currentLinePoints);
-            if (linesHistory[i].length > config.config_trailLength || linesHistory[i].length > 6) {
+            if (linesHistory[i].length > config.trailLength) {
                 linesHistory[i].shift();
             }
 
-            // Рендерим нить вместе с её шлейфом из истории кадров
+            // Рендер линий из истории
             linesHistory[i].forEach((points, tIndex) => {
-                // Чем старее кадр в истории, тем он прозрачнее — это и создает эффект плавного шлейфа!
                 let alphaModifier = (tIndex + 1) / linesHistory[i].length;
                 ctx.lineWidth = 1.0 * alphaModifier;
-                ctx.strokeStyle = `rgba(95, 10, 20, ${0.1 * alphaModifier})`;
+                
+                // Чистый бордовый цвет нитей разной прозрачности без смешивания слоев
+                ctx.strokeStyle = `rgba(95, 10, 20, ${0.08 * alphaModifier})`;
 
                 ctx.beginPath();
                 points.forEach((pt, pIndex) => {
@@ -136,7 +129,6 @@
             });
         }
 
-        ctx.globalCompositeOperation = 'source-over';
         requestAnimationFrame(animate);
     }
 
