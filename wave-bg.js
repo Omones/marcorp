@@ -9,11 +9,11 @@
     let h = canvas.height = parent.clientHeight;
 
     const config = {
-        linesCount: 30,          // Количество нитей в жгуте
-        segments: 90,            // Детализация изгибов
-        amplitude: 100,          // Базовая высота изгиба волны
+        linesCount: 32,          // Оптимальное количество для высокой плотности
+        segments: 60,            // Уменьшено количество точек (визуально незаметно, но в 1.5 раза быстрее)
+        amplitude: 100,          // Высота изгиба волны
         speed: 0.006,            // Скорость движения
-        trailLength: 6           // Длина эффекта шлейфа
+        waveColor: 'rgba(95, 10, 20, 0.15)' // Насыщенный бордовый
     };
 
     const mouse = { x: w / 2, y: h / 2, targetX: w / 2, targetY: h / 2 };
@@ -29,22 +29,15 @@
         mouse.targetY = h / 2;
     });
 
-    // Массив для хранения истории кадров каждой нити
-    const linesHistory = [];
-    for (let i = 0; i < config.linesCount; i++) {
-        linesHistory.push([]);
-    }
-
-    // Бордовая космическая пыль
+    // Оптимизированные частицы (минимальный вес для процессора)
     const particles = [];
-    for(let i = 0; i < 35; i++) {
+    for(let i = 0; i < 25; i++) {
         particles.push({
             x: Math.random() * w,
             y: Math.random() * h,
-            r: Math.random() * 1.0 + 0.3,
+            r: Math.random() * 0.8 + 0.3,
             speedX: Math.random() * 0.2 - 0.1,
-            speedY: Math.random() * -0.2 - 0.05,
-            alpha: Math.random() * 0.3 + 0.1
+            speedY: Math.random() * -0.15 - 0.05
         });
     }
 
@@ -57,32 +50,38 @@
     let phase = 0;
 
     function animate() {
-        // Полная очистка холста до идеальной прозрачности
-        ctx.clearRect(0, 0, w, h);
+        // МАГИЯ ОПТИМИЗАЦИИ: Режим multiply плавно затухает только нарисованные пиксели,
+        // сохраняя при этом холст 100% прозрачным, без образования серого налета.
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.82)'; // Чем меньше число (например 0.75), тем длиннее шлейф
+        ctx.fillRect(0, 0, w, h);
         
+        // Возвращаем стандартный режим для рисования новых линий
         ctx.globalCompositeOperation = 'source-over';
         phase += config.speed;
 
-        mouse.x += (mouse.targetX - mouse.x) * 0.05;
-        mouse.y += (mouse.targetY - mouse.y) * 0.05;
+        // Плавное сглаживание движения мыши (lerp)
+        mouse.x += (mouse.targetX - mouse.x) * 0.06;
+        mouse.y += (mouse.targetY - mouse.y) * 0.06;
 
-        // 1. Отрисовка бордовых частиц (без фонового тумана)
+        // 1. Отрисовка частиц
+        ctx.fillStyle = 'rgba(95, 10, 20, 0.25)';
         particles.forEach(p => {
             p.x += p.speedX;
             p.y += p.speedY;
             if (p.y < 0) p.y = h;
             if (p.x < 0 || p.x > w) p.x = Math.random() * w;
-            
-            let waveAlpha = p.alpha * (Math.sin(phase * 2 + p.x * 0.01) * 0.3 + 0.7);
-            ctx.fillStyle = `rgba(95, 10, 20, ${waveAlpha})`; 
             ctx.fillRect(p.x, p.y, p.r * 1.5, p.r * 1.5);
         });
 
-        // 2. Вычисление и отрисовка жгута волны
-        for (let i = 0; i < config.linesCount; i++) {
-            let lineShift = i * 0.08 + Math.sin(i * 0.5) * 0.2; 
-            let currentLinePoints = [];
+        // 2. Быстрый рендеринг жгута волны за один проход в памяти
+        ctx.lineWidth = 1.0;
+        ctx.strokeStyle = config.waveColor;
 
+        for (let i = 0; i < config.linesCount; i++) {
+            ctx.beginPath();
+            let lineShift = i * 0.08 + Math.sin(i * 0.5) * 0.2; 
+            
             for (let j = 0; j <= config.segments; j++) {
                 let x = (w / config.segments) * j;
                 let baseY = h * 0.53;
@@ -103,30 +102,10 @@
                 let edgeFade = Math.sin((j / config.segments) * Math.PI);
                 y = baseY + (y - baseY) * edgeFade;
 
-                currentLinePoints.push({ x, y });
+                if (j === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
             }
-
-            // Запись истории кадров
-            linesHistory[i].push(currentLinePoints);
-            if (linesHistory[i].length > config.trailLength) {
-                linesHistory[i].shift();
-            }
-
-            // Рендер линий из истории
-            linesHistory[i].forEach((points, tIndex) => {
-                let alphaModifier = (tIndex + 1) / linesHistory[i].length;
-                ctx.lineWidth = 1.0 * alphaModifier;
-                
-                // Чистый бордовый цвет нитей разной прозрачности без смешивания слоев
-                ctx.strokeStyle = `rgba(95, 10, 20, ${0.08 * alphaModifier})`;
-
-                ctx.beginPath();
-                points.forEach((pt, pIndex) => {
-                    if (pIndex === 0) ctx.moveTo(pt.x, pt.y);
-                    else ctx.lineTo(pt.x, pt.y);
-                });
-                ctx.stroke();
-            });
+            ctx.stroke();
         }
 
         requestAnimationFrame(animate);
