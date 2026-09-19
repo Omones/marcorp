@@ -9,12 +9,12 @@
     let h = canvas.height = parent.clientHeight;
 
     const config = {
-        linesCount: 30,          // Количество нитей в жгуте
-        segments: 60,            // Оптимально для высокой частоты кадров (FPS)
+        linesCount: 24,          // Оптимальное число нитей (снижает нагрузку на CPU)
+        segments: 60,            // Детализация изгибов
         amplitude: 100,          // Высота изгиба волны
         speed: 0.006,            // Скорость движения
-        waveColor: 'rgba(95, 10, 20, 0.18)', // Насыщенный бордовый
-        trailLength: 4           // Глубина шлейфа линий
+        waveColor: 'rgba(95, 10, 20, 0.16)', // Бордовый цвет
+        trailLength: 4           // Количество слоев шлейфа в буфере
     };
 
     const mouse = { x: w / 2, y: h / 2, targetX: w / 2, targetY: h / 2 };
@@ -30,12 +30,22 @@
         mouse.targetY = h / 2;
     });
 
-    // Буфер для хранения прозрачных слепков прошлых кадров
+    // ПЕРЕИСПОЛЬЗУЕМЫЙ БУФЕР: Создаем холсты один раз при старте и больше не выделяем под них память
     const trailBuffer = [];
+    for (let i = 0; i < config.trailLength; i++) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = w;
+        tempCanvas.height = h;
+        trailBuffer.push({
+            canvas: tempCanvas,
+            ctx: tempCanvas.getContext('2d')
+        });
+    }
+    let currentBufferIndex = 0;
 
-    // Легкие бордовые частицы
+    // Частицы пыли
     const particles = [];
-    for(let i = 0; i < 20; i++) {
+    for(let i = 0; i < 18; i++) {
         particles.push({
             x: Math.random() * w,
             y: Math.random() * h,
@@ -48,13 +58,17 @@
     const resizeObserver = new ResizeObserver(() => {
         w = canvas.width = parent.clientWidth;
         h = canvas.height = parent.clientHeight;
-        trailBuffer.length = 0; // Сброс памяти при изменении окна
+        // Подгоняем размеры постоянного буфера под новое окно
+        trailBuffer.forEach(item => {
+            item.canvas.width = w;
+            item.canvas.height = h;
+        });
     });
     resizeObserver.observe(parent);
 
     let phase = 0;
 
-    // Функция отрисовки, принимающая конкретный контекст холста (целевой или виртуальный)
+    // Отрисовка текущей геометрии в конкретный контекст
     function drawCurrentFrame(targetCtx) {
         // 1. Отрисовка частиц
         targetCtx.fillStyle = 'rgba(95, 10, 20, 0.25)';
@@ -67,7 +81,7 @@
         });
 
         // 2. Отрисовка геометрии жгута волны
-        targetCtx.lineWidth = 1.0;
+        targetCtx.lineWidth = 1.2; // Немного утолщили нити, компенсируя их меньшее количество
         targetCtx.strokeStyle = config.waveColor;
 
         for (let i = 0; i < config.linesCount; i++) {
@@ -109,29 +123,28 @@
         mouse.x += (mouse.targetX - mouse.x) * 0.06;
         mouse.y += (mouse.targetY - mouse.y) * 0.06;
 
-        // Создаем чистый виртуальный холст в оперативной памяти
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = w;
-        tempCanvas.height = h;
-        const tempCtx = tempCanvas.getContext('2d');
+        // Берем следующий по кругу холст из постоянного буфера памяти и очищаем его
+        const activeBuffer = trailBuffer[currentBufferIndex];
+        activeBuffer.ctx.clearRect(0, 0, w, h);
 
-        // Рисуем текущую геометрию строго во временный контекст
-        drawCurrentFrame(tempCtx);
+        // Рисуем новый кадр в этот буфер
+        drawCurrentFrame(activeBuffer.ctx);
 
-        // Добавляем прозрачный слепок в буфер истории
-        trailBuffer.push(tempCanvas);
-        if (trailBuffer.length > config.trailLength) {
-            trailBuffer.shift();
+        // Выводим все слои из буфера на экран, начиная со старых к новым
+        for (let i = 0; i < config.trailLength; i++) {
+            // Рассчитываем индекс кадра так, чтобы идти от старых к свежим
+            let index = (currentBufferIndex + 1 + i) % config.trailLength;
+            
+            // Настраиваем прозрачность слоя (чем старее кадр, тем он бледнее)
+            ctx.globalAlpha = (i + 1) / config.trailLength;
+            ctx.drawImage(trailBuffer[index].canvas, 0, 0);
         }
 
-        // Выводим все накопленные прозрачные слои на экран с эффектом затухания
-        trailBuffer.forEach((cachedFrame, index) => {
-            ctx.globalAlpha = (index + 1) / trailBuffer.length;
-            ctx.drawImage(cachedFrame, 0, 0);
-        });
-
-        // Сбрасываем прозрачность основного холста обратно в 100%
+        // Возвращаем дефолтную прозрачность основного холста
         ctx.globalAlpha = 1.0;
+
+        // Сдвигаем индекс циклического буфера для следующего кадра
+        currentBufferIndex = (currentBufferIndex + 1) % config.trailLength;
 
         requestAnimationFrame(animate);
     }
