@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Полноэкранный Чат</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #f0f2f5; }
+        .container { width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff; }
+        .chat-header { background: #007bff; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .online-count { font-size: 13px; background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 12px; }
+        #messages-box { flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; word-break: break-word; align-self: flex-start; background: #e4e6eb; }
+        .msg.my-message { background: #007bff; color: white; align-self: flex-end; }
+        .msg-meta { font-size: 11px; font-weight: bold; margin-bottom: 3px; opacity: 0.7; }
+        .msg.system { align-self: center; background: transparent; color: #777; font-size: 12px; font-style: italic; padding: 2px 0; text-align: center; }
+        .input-area { padding: 15px; background: white; border-top: 1px solid #eee; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 16px; }
+        button { padding: 12px 20px; background: #007bff; color: white; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chat-header">
+            <span id="chat-title">💬 Общий чат</span>
+            <span id="online-counter" class="online-count">В сети: 1</span>
+        </div>
+        <div id="messages-box"></div>
+        <div class="input-area">
+            <input type="text" id="msg-input" placeholder="Напишите сообщение..." maxlength="400" autofocus>
+            <button id="send-btn">Отправить</button>
+        </div>
+    </div>
+    <script>
+        // Создаем встроенный канал связи между вкладками одного проекта
+        const chatChannel = new BroadcastChannel('universal_local_chat');
+        const myClientId = Math.random().toString(36).substr(2, 9);
+        const activeUsers = new Map();
+        
+        // Автогенерация уникального никнейма из 3 заглавных букв
+        const myUsername = Array.from({length: 3}, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
+        document.getElementById('chat-title').textContent = `💬 Чат (${myUsername})`;
+
+        const messagesBox = document.getElementById('messages-box');
+        const msgInput = document.getElementById('msg-input');
+        const onlineCounter = document.getElementById('online-counter');
+
+        // Обработка входящих событий от других вкладок
+        chatChannel.onmessage = (e) => {
+            const data = e.data;
+            if (data.type === 'chat') {
+                appendMessage(data);
+            } else if (data.type === 'status') {
+                handleStatusSignal(data);
+            }
+        };
+
+        function sendMessage() {
+            const text = msgInput.value.trim();
+            if (!text) return;
+
+            const messageData = { type: 'chat', sender: myUsername, clientId: myClientId, text };
+            
+            // Отображаем сообщение у себя в окне
+            appendMessage(messageData);
+            // Дублируем сообщение во все остальные открытые окна
+            chatChannel.postMessage(messageData);
+            
+            msgInput.value = '';
+        }
+
+        // Логика обнаружения пользователей онлайн («пульс» системы)
+        function sendSignal(action) {
+            chatChannel.postMessage({ type: 'status', action, sender: myUsername, clientId: myClientId });
+        }
+
+        function handleStatusSignal(data) {
+            if (data.clientId === myClientId) return;
+            const isNew = !activeUsers.has(data.clientId);
+            activeUsers.set(data.clientId, { username: data.sender, lastSeen: Date.now() });
+            
+            if (isNew || data.action === 'join') {
+                if (isNew) {
+                    appendSystemMessage(`👥 ${data.sender} вошел в чат`);
+                    sendSignal('ping'); // Отвечаем новому участнику, чтобы он нас тоже увидел
+                }
+                updateOnlineDisplay();
+            }
+        }
+
+        function checkOfflineUsers() {
+            const now = Date.now();
+            let changed = false;
+            for (const [id, user] of activeUsers.entries()) {
+                if (now - user.lastSeen > 6000) {
+                    appendSystemMessage(`🚪 ${user.username} покинул чат`);
+                    activeUsers.delete(id);
+                    changed = true;
+                }
+            }
+            if (changed) updateOnlineDisplay();
+        }
+
+        function updateOnlineDisplay() {
+            onlineCounter.textContent = `В сети: ${activeUsers.size + 1}`;
+        }
+
+        function appendMessage(data) {
+            const msgEl = document.createElement('div');
+            // Если ID совпадает с нашим — выравниваем вправо и красим в синий
+            msgEl.className = `msg ${data.clientId === myClientId ? 'my-message' : ''}`;
+            msgEl.innerHTML = `<div class="msg-meta">${escapeHTML(data.sender)}</div><div>${escapeHTML(data.text)}</div>`;
+            messagesBox.appendChild(msgEl);
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+
+        function appendSystemMessage(text) {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'msg system';
+            msgEl.textContent = text;
+            messagesBox.appendChild(msgEl);
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+        msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        function escapeHTML(str) { return str.replace(/[&<>'"]/g, t => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[t] || t)); }
+
+        // Активация присутствия при старте страницы
+        sendSignal('join');
+        setInterval(() => sendSignal('ping'), 2000);
+        setInterval(checkOfflineUsers, 1000);
+    </script>
+</body>
+</html>
