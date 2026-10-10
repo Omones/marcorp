@@ -3,53 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Общий Сетевой Чат</title>
+    <title>Общий Чат</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body, html { width: 100%; height: 100%; overflow: hidden; }
-        
-        /* Плавная анимация фонового градиента */
-        body {
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Контейнер чата стал слегка прозрачным для эффекта стекла */
-        .container { 
-            width: 100%; 
-            height: 100%; 
-            display: flex; 
-            flex-direction: column; 
-            background: rgba(255, 255, 255, 0.85); 
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        .chat-header { background: rgba(0, 123, 255, 0.9); color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #e5ddd5; }
+        .container { width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff; }
+        .chat-header { background: #075e54; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .online-count { font-size: 13px; background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 12px; }
-        #messages-box { flex: 1; padding: 15px; overflow-y: auto; background: transparent; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; word-break: break-word; align-self: flex-start; background: rgba(228, 230, 235, 0.9); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .msg.my-message { background: #007bff; color: white; align-self: flex-end; }
-        .msg-meta { font-size: 11px; font-weight: bold; margin-bottom: 3px; opacity: 0.7; }
-        .msg.system { align-self: center; background: transparent; color: #444; font-size: 12px; font-style: italic; padding: 2px 0; text-align: center; box-shadow: none; }
-        .input-area { padding: 15px; background: rgba(255, 255, 255, 0.9); border-top: 1px solid rgba(0,0,0,0.05); display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 16px; background: white; }
-        button { padding: 12px 20px; background: #007bff; color: white; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
-        button:hover { background: #0056b3; }
+        #messages-box { flex: 1; padding: 15px; overflow-y: auto; background: #f4f3f0; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; word-break: break-word; align-self: flex-start; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .msg.my-message { background: #dcf8c6; align-self: flex-end; }
+        .msg-meta { font-size: 11px; font-weight: bold; margin-bottom: 3px; color: #128c7e; }
+        .msg.system { align-self: center; background: #e1f3fc; color: #02466b; font-size: 12px; font-style: italic; padding: 4px 10px; text-align: center; border-radius: 8px; box-shadow: none; }
+        .input-area { padding: 15px; background: #f0f0f0; border-top: 1px solid #ddd; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #fff; border-radius: 20px; outline: none; font-size: 16px; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        button { padding: 12px 25px; background: #075e54; color: white; border: none; font-weight: bold; border-radius: 20px; cursor: pointer; }
+        button:hover { background: #054c44; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="chat-header">
-            <span id="chat-title">💬 Сетевой чат</span>
+            <span id="chat-title">💬 Общий чат</span>
             <span id="online-counter" class="online-count">В сети: 1</span>
         </div>
         <div id="messages-box"></div>
@@ -59,6 +34,7 @@
         </div>
     </div>
     <script>
+        // Уникальный хеш комнаты на основе вашего URL для автоматического разделения чатов
         const CHAT_ROOM_HASH = btoa(window.location.hostname + window.location.pathname).replace(/=/g, "").substr(0, 16);
         const myClientId = Math.random().toString(36).substr(2, 9);
         const activeUsers = new Map();
@@ -73,11 +49,12 @@
         let ws;
 
         function connectToNetwork() {
+            // Подключаемся к стабильному публичному WebSocket-реле через встроенное в браузер API
             ws = new WebSocket('wss://relay.damus.io');
 
             ws.onopen = () => {
-                // Исправлено: корректный формат фильтра Nostr-подписки
-                const subscription = ["REQ", "sub_" + myClientId, { "kinds":, "#t": [CHAT_ROOM_HASH], "limit": 0 }];
+                // Ошибка исправлена: корректно передаем структуру подписки на комнату CHAT_ROOM_HASH
+                const subscription = ["REQ", "sub_" + myClientId, { "kinds": [42], "#t": [CHAT_ROOM_HASH], "limit": 0 }];
                 ws.send(JSON.stringify(subscription));
 
                 sendSignal('join');
