@@ -3,70 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Чат</title>
+    <title>Чат по никам</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #e5ddd5; }
         .container { width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff; }
         .chat-header { background: #075e54; color: white; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .online-count { font-size: 13px; background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 12px; }
+        .status-info { font-size: 13px; background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 12px; }
+        
+        /* Экран сопряжения по никам */
+        #connect-screen { padding: 20px; display: flex; flex-direction: column; gap: 15px; justify-content: center; height: 100%; background: #f4f3f0; text-align: center; }
+        #connect-screen input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 18px; text-align: center; text-transform: uppercase; }
+        
+        /* Экран самого чата */
         #messages-box { flex: 1; padding: 15px; overflow-y: auto; background: #f4f3f0; display: flex; flex-direction: column; gap: 10px; }
         .msg { padding: 8px 12px; border-radius: 12px; max-width: 75%; word-break: break-word; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); align-self: flex-start; }
         .msg.me { background: #dcf8c6; align-self: flex-end; }
         .msg-meta { font-size: 11px; font-weight: bold; margin-bottom: 2px; color: #128c7e; }
         .msg.system { align-self: center; background: #e1f3fc; color: #02466b; font-size: 12px; font-style: italic; padding: 4px 10px; border-radius: 8px; }
+        
         .input-area { padding: 12px; background: #f0f0f0; border-top: 1px solid #ddd; display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px 15px; border: 1px solid #fff; border-radius: 20px; outline: none; font-size: 16px; }
+        .input-area input { flex: 1; padding: 10px 15px; border: 1px solid #fff; border-radius: 20px; outline: none; font-size: 16px; }
         button { padding: 10px 20px; background: #075e54; color: white; border: none; font-weight: bold; border-radius: 20px; cursor: pointer; }
+        button:hover { background: #054c44; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="chat-header">
-            <span id="chat-title">💬 Чат</span>
-            <span id="online-counter" class="online-count">В сети: 1</span>
+        <!-- ЭКРАН ПОДКЛЮЧЕНИЯ -->
+        <div id="connect-screen">
+            <h2 id="my-nick-display" style="color: #075e54; margin-bottom: 10px;"></h2>
+            <p style="color: #666;">Чтобы начать диалог, введите трёхбуквенный ник собеседника, который сейчас на странице:</p>
+            <input type="text" id="partner-nick-input" placeholder="Ник друга (например: BBB)" maxlength="3">
+            <button id="connect-btn" style="border-radius: 8px; padding: 12px;">Начать чат</button>
         </div>
-        <div id="messages-box"></div>
-        <div class="input-area">
-            <input type="text" id="msg-input" placeholder="Сообщение..." maxlength="400" autofocus>
-            <button id="send-btn">-></button>
+
+        <!-- ЭКРАН ЧАТА -->
+        <div id="chat-screen" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
+            <div class="chat-header">
+                <span id="chat-title">💬 Чат</span>
+                <span id="connection-status" class="status-info">Ожидание...</span>
+            </div>
+            <div id="messages-box"></div>
+            <div class="input-area">
+                <input type="text" id="msg-input" placeholder="Сообщение..." maxlength="400">
+                <button id="send-btn">-></button>
+            </div>
         </div>
     </div>
-    <script>
-        // Комната определяется по хэшу в адресе, например: marcorp.ru/chat/index.html#ROOM1
-        const roomName = window.location.hash ? window.location.hash.substring(1) : 'main';
-        const myClientId = Math.random().toString(36).substr(2, 9);
-        const activeUsers = new Map();
-        
-        const myUsername = Array.from({length: 3}, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
-        document.getElementById('chat-title').textContent = `💬 Чат ${roomName.toUpperCase()} (${myUsername})`;
 
+    <script>
+        // Генерируем случайный ник текущего пользователя из 3 заглавных букв
+        const myUsername = Array.from({length: 3}, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
+        const myClientId = Math.random().toString(36).substr(2, 9);
+        
+        document.getElementById('my-nick-display').textContent = `Ваш ник: ${myUsername}`;
+
+        const connectScreen = document.getElementById('connect-screen');
+        const chatScreen = document.getElementById('chat-screen');
         const messagesBox = document.getElementById('messages-box');
         const msgInput = document.getElementById('msg-input');
-        const onlineCounter = document.getElementById('online-counter');
+        const partnerInput = document.getElementById('partner-nick-input');
+        const statusInfo = document.getElementById('connection-status');
+        
         let ws;
+        let roomName = "";
+        let partnerUsername = "";
+        let isPartnerOnline = false;
 
-        function connect() {
-            // Подключаемся напрямую через встроенное API к эхо-серверу (без внешних js-файлов)
+        document.getElementById('connect-btn').onclick = () => {
+            const partnerNick = partnerInput.value.trim().toUpperCase();
+            if (partnerNick.length !== 3) return alert('Ник должен состоять ровно из 3 букв!');
+            if (partnerNick === myUsername) return alert('Нельзя ввести собственный ник!');
+
+            partnerUsername = partnerNick;
+            
+            // Формируем имя комнаты: сортируем ники по алфавиту, чтобы у обоих создался одинаковый хэш комнаты
+            roomName = [myUsername, partnerUsername].sort().join('_').toLowerCase();
+
+            document.getElementById('chat-title').textContent = `💬 Диалог: ${myUsername} ⇄ ${partnerUsername}`;
+            connectScreen.classList.add('hidden');
+            chatScreen.classList.remove('hidden');
+
+            startNetwork();
+        };
+
+        function startNetwork() {
+            // Подключаемся через нативный WebSocket к бесплатному открытому эхо-серверу
             ws = new WebSocket('wss://://piesocket.com');
 
             ws.onopen = () => {
-                sendSignal('join');
-                setInterval(() => sendSignal('ping'), 3000);
-                setInterval(checkOfflineUsers, 2000);
+                sendSignal('ping');
+                // Проверяем статус собеседника каждые 3 секунды
+                setInterval(() => {
+                    sendSignal('ping');
+                    checkPartnerStatus();
+                }, 3000);
             };
 
             ws.onmessage = (e) => {
                 try {
                     const data = JSON.parse(e.data);
-                    if (data.room !== roomName) return; // Фильтруем чужие комнаты
+                    if (data.room !== roomName) return; // Игнорируем чужие диалоги
 
-                    if (data.type === 'chat') appendMessage(data, data.clientId === myClientId);
-                    else if (data.type === 'status') handleStatusSignal(data);
+                    if (data.type === 'chat') {
+                        appendMessage(data, data.clientId === myClientId);
+                    } else if (data.type === 'status') {
+                        if (data.clientId !== myClientId && data.sender === partnerUsername) {
+                            isPartnerOnline = true;
+                            statusInfo.textContent = "В сети";
+                            statusInfo.style.background = "rgba(37, 211, 102, 0.4)";
+                        }
+                    }
                 } catch (err) {}
             };
 
-            ws.onclose = () => setTimeout(connect, 2000);
+            ws.onclose = () => setTimeout(startNetwork, 2000);
+        }
+
+        function checkPartnerStatus() {
+            // Если за последние секунды сигналов не было — пишем "Не в сети"
+            if (!isPartnerOnline) {
+                statusInfo.textContent = "Ожидание...";
+                statusInfo.style.background = "rgba(255, 255, 255, 0.2)";
+            }
+            // Сбрасываем флаг для следующей итерации проверки присутствия
+            isPartnerOnline = false;
         }
 
         function sendMessage() {
@@ -75,39 +138,13 @@
 
             ws.send(JSON.stringify({ type: 'chat', room: roomName, sender: myUsername, clientId: myClientId, text }));
             msgInput.value = '';
+            msgInput.focus();
         }
 
         function sendSignal(action) {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'status', room: roomName, action, sender: myUsername, clientId: myClientId }));
             }
-        }
-
-        function handleStatusSignal(data) {
-            if (data.clientId === myClientId) return;
-            const isNew = !activeUsers.has(data.clientId);
-            activeUsers.set(data.clientId, { username: data.sender, lastSeen: Date.now() });
-            if (isNew || data.action === 'join') {
-                if (isNew) appendSystemMessage(`👥 ${data.sender} вошел в чат`);
-                updateOnlineDisplay();
-            }
-        }
-
-        function checkOfflineUsers() {
-            const now = Date.now();
-            let changed = false;
-            for (const [id, user] of activeUsers.entries()) {
-                if (now - user.lastSeen > 8000) {
-                    appendSystemMessage(`🚪 ${user.username} покинул чат`);
-                    activeUsers.delete(id);
-                    changed = true;
-                }
-            }
-            if (changed) updateOnlineDisplay();
-        }
-
-        function updateOnlineDisplay() {
-            onlineCounter.textContent = `В сети: ${activeUsers.size + 1}`;
         }
 
         function appendMessage(data, isMe) {
@@ -129,8 +166,6 @@
         document.getElementById('send-btn').onclick = sendMessage;
         msgInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
         function escapeHTML(str) { return str.replace(/[&<>'"]/g, t => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[t] || t)); }
-
-        connect();
     </script>
 </body>
 </html>
