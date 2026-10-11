@@ -3,42 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Чат по никам</title>
+    <title>P2P Чат через Интернет</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #e5ddd5; }
         .container { width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff; }
-        .chat-header { background: #075e54; color: white; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .status-info { font-size: 13px; background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 12px; }
-        #connect-screen { padding: 20px; display: flex; flex-direction: column; gap: 15px; justify-content: center; height: 100%; background: #f4f3f0; text-align: center; }
-        #connect-screen input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 18px; text-align: center; text-transform: uppercase; }
+        .hidden { display: none !important; }
+        .setup-screen { padding: 15px; display: flex; flex-direction: column; gap: 12px; height: 100%; overflow-y: auto; background: #f4f3f0; }
+        textarea { width: 100%; height: 110px; padding: 8px; border: 1px solid #ccc; border-radius: 8px; resize: none; font-size: 11px; font-family: monospace; background: #fff; word-break: break-all; }
+        .chat-header { background: #075e54; color: white; padding: 15px; font-weight: bold; text-align: center; }
         #messages-box { flex: 1; padding: 15px; overflow-y: auto; background: #f4f3f0; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 8px 12px; border-radius: 12px; max-width: 75%; word-break: break-word; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); align-self: flex-start; }
+        .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; word-break: break-word; align-self: flex-start; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .msg.me { background: #dcf8c6; align-self: flex-end; }
         .msg-meta { font-size: 11px; font-weight: bold; margin-bottom: 2px; color: #128c7e; }
         .input-area { padding: 12px; background: #f0f0f0; border-top: 1px solid #ddd; display: flex; gap: 10px; }
-        .input-area input { flex: 1; padding: 10px 15px; border: 1px solid #fff; border-radius: 20px; outline: none; font-size: 16px; }
-        button { padding: 10px 20px; background: #075e54; color: white; border: none; font-weight: bold; border-radius: 20px; cursor: pointer; }
-        button:hover { background: #054c44; }
-        .hidden { display: none !important; }
+        input[type="text"] { flex: 1; padding: 12px; border: 1px solid #fff; border-radius: 20px; outline: none; font-size: 16px; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        button { padding: 12px 20px; background: #075e54; color: white; border: none; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- ЭКРАН ПОДКЛЮЧЕНИЯ -->
-        <div id="connect-screen">
-            <h2 id="my-nick-display" style="color: #075e54; margin-bottom: 10px;"></h2>
-            <p style="color: #666;">Введите трёхбуквенный ник собеседника, который сейчас открыл этот чат:</p>
-            <input type="text" id="partner-nick-input" placeholder="Ник друга" maxlength="3">
-            <button id="connect-btn" style="border-radius: 8px; padding: 12px;">Начать чат</button>
+        <!-- СТАРТОВЫЙ ЭКРАН СИНХРОНИЗАЦИИ -->
+        <div id="setup-screen" class="setup-screen">
+            <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff;">
+                <h3 style="color:#075e54;">Вариант A: Создать точку подключения</h3>
+                <button id="btn-create" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">1. Создать токен приглашения</button>
+                <div id="box-invite" class="hidden" style="margin-top:10px;">
+                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Скопируйте этот токен (кликните, чтобы выделить все) и отправьте собеседнику:</p>
+                    <textarea id="txt-local-offer" readonly onclick="this.select()"></textarea>
+                    <p style="font-size:13px; color:#555; margin-top:8px; margin-bottom:4px;">Вставьте ответный токен от собеседника ниже:</p>
+                    <textarea id="txt-remote-answer" placeholder="Вставьте ответный токен сюда..."></textarea>
+                    <button id="btn-accept" style="width:100%; margin-top:8px; padding:10px; background:#25d366; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">2. Подключить устройства</button>
+                </div>
+            </div>
+
+            <div style="text-align:center; font-weight:bold; color:#777; margin:5px 0;">ИЛИ</div>
+
+            <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff;">
+                <h3 style="color:#075e54;">Вариант B: Присоединиться по токену</h3>
+                <p style="font-size:13px; color:#555; margin-bottom:4px;">Вставьте токен приглашения, полученный от первого устройства:</p>
+                <textarea id="txt-remote-offer" placeholder="Вставьте токен приглашения сюда..."></textarea>
+                <button id="btn-join" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">1. Создать ответный токен</button>
+                <div id="box-answer" class="hidden" style="margin-top:10px;">
+                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Скопируйте этот ответный токен и передайте его первому устройству:</p>
+                    <textarea id="txt-local-answer" readonly onclick="this.select()"></textarea>
+                </div>
+            </div>
         </div>
 
         <!-- ЭКРАН ЧАТА -->
         <div id="chat-screen" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
-            <div class="chat-header">
-                <span id="chat-title">💬 Чат</span>
-                <span id="connection-status" class="status-info">Ожидание...</span>
-            </div>
+            <div class="chat-header" id="chat-title">💬 P2P Чат по Интернету</div>
             <div id="messages-box"></div>
             <div class="input-area">
                 <input type="text" id="msg-input" placeholder="Сообщение..." maxlength="400">
@@ -48,100 +63,94 @@
     </div>
 
     <script>
-        const myUsername = Array.from({length: 3}, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
-        const myClientId = Math.random().toString(36).substr(2, 9);
+        // Подключаем стандартные встроенные STUN-серверы Google для определения внешних IP-адресов в интернете
+        const pc = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:://google.com' },
+                { urls: 'stun:://google.com' }
+            ]
+        });
         
-        document.getElementById('my-nick-display').textContent = `Ваш ник: ${myUsername}`;
+        let dc = null;
 
-        const connectScreen = document.getElementById('connect-screen');
+        const myUsername = Array.from({length: 3}, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
+        document.getElementById('chat-title').textContent = `💬 Чат (${myUsername})`;
+
+        const setupScreen = document.getElementById('setup-screen');
         const chatScreen = document.getElementById('chat-screen');
         const messagesBox = document.getElementById('messages-box');
         const msgInput = document.getElementById('msg-input');
-        const partnerInput = document.getElementById('partner-nick-input');
-        const statusInfo = document.getElementById('connection-status');
-        
-        let ws;
-        let roomName = "";
-        let partnerUsername = "";
-        let lastSeenPartner = 0;
 
-        document.getElementById('connect-btn').onclick = () => {
-            const partnerNick = partnerInput.value.trim().toUpperCase();
-            if (partnerNick.length !== 3) return alert('Ник должен состоять из 3 букв!');
-            if (partnerNick === myUsername) return alert('Нельзя ввести свой собственный ник!');
+        function initDataChannel() {
+            dc.onopen = () => {
+                setupScreen.classList.add('hidden');
+                chatScreen.classList.remove('hidden');
+                msgInput.focus();
+            };
+            dc.onmessage = (e) => {
+                try { appendMessage(JSON.parse(e.data)); } catch(err) {}
+            };
+        }
 
-            partnerUsername = partnerNick;
-            // Генерируем уникальный хэш комнаты на основе вашего домена marcorp.ru и отсортированных ников
-            const baseRoom = [myUsername, partnerUsername].sort().join('_').toLowerCase();
-            roomName = "marcorp_chat_" + btoa(window.location.hostname + baseRoom).replace(/=/g, "").substr(0, 15);
+        // Логика Создателя (Вариант A)
+        document.getElementById('btn-create').onclick = async () => {
+            document.getElementById('box-invite').classList.remove('hidden');
+            dc = pc.createDataChannel("internet_p2p_channel");
+            initDataChannel();
 
-            document.getElementById('chat-title').textContent = `💬 ${myUsername} ⇄ ${partnerUsername}`;
-            connectScreen.classList.add('hidden');
-            chatScreen.classList.remove('hidden');
-
-            startNetwork();
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            
+            // Ждем генерации внешних кандидатов сетью и пакуем в токен
+            pc.onicecandidate = (e) => {
+                if (!e.candidate) {
+                    document.getElementById('txt-local-offer').value = btoa(JSON.stringify(pc.localDescription));
+                }
+            };
         };
 
-        function startNetwork() {
-            // Подключаемся к стабильному бесплатному публичному вебсокет-эхо-серверу
-            ws = new WebSocket('wss://echo.websocket.org');
+        document.getElementById('btn-accept').onclick = async () => {
+            const val = document.getElementById('txt-remote-answer').value.trim();
+            if (!val) return;
+            await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(atob(val))));
+        };
 
-            ws.onopen = () => {
-                sendSignal('ping');
-                // Каждые 2 секунды шлем пинг и проверяем, в сети ли собеседник
-                setInterval(() => {
-                    sendSignal('ping');
-                    if (Date.now() - lastSeenPartner > 5000) {
-                        statusInfo.textContent = "Ожидание...";
-                        statusInfo.style.background = "rgba(255, 255, 255, 0.2)";
-                    }
-                }, 2000);
+        // Логика Присоединяющегося (Вариант B)
+        document.getElementById('btn-join').onclick = async () => {
+            const val = document.getElementById('txt-remote-offer').value.trim();
+            if (!val) return;
+            document.getElementById('box-answer').classList.remove('hidden');
+
+            pc.ondatachannel = (e) => {
+                dc = e.channel;
+                initDataChannel();
             };
 
-            ws.onmessage = (e) => {
-                try {
-                    // Публичный эхо-сервер возвращает все отправленные сообщения обратно. Парсим их:
-                    const data = JSON.parse(e.data);
-                    if (data.room !== roomName) return;
+            await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(atob(val))));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
 
-                    if (data.type === 'chat') {
-                        appendMessage(data, data.clientId === myClientId);
-                    } else if (data.type === 'status') {
-                        if (data.clientId !== myClientId && data.sender === partnerUsername) {
-                            lastSeenPartner = Date.now();
-                            statusInfo.textContent = "В сети";
-                            statusInfo.style.background = "rgba(37, 211, 102, 0.4)";
-                        }
-                    }
-                } catch (err) {}
+            pc.onicecandidate = (e) => {
+                if (!e.candidate) {
+                    document.getElementById('txt-local-answer').value = btoa(JSON.stringify(pc.localDescription));
+                }
             };
-
-            ws.onclose = () => setTimeout(startNetwork, 2000);
-        }
+        };
 
         function sendMessage() {
             const text = msgInput.value.trim();
-            if (!text || ws.readyState !== WebSocket.OPEN) return;
+            if (!text || !dc || dc.readyState !== "open") return;
 
-            ws.send(JSON.stringify({ type: 'chat', room: roomName, sender: myUsername, clientId: myClientId, text }));
+            const payload = { sender: myUsername, text: text, isMe: true };
+            dc.send(JSON.stringify({ sender: myUsername, text: text, isMe: false }));
+            
+            appendMessage(payload);
             msgInput.value = '';
-            msgInput.focus();
         }
 
-        function sendSignal(action) {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'status', room: roomName, action, sender: myUsername, clientId: myClientId }));
-            }
-        }
-
-        function appendMessage(data, isMe) {
-            // Предотвращаем дублирование сообщений на экране (так как эхо-сервер возвращает и наше собственное сообщение)
-            const exist = Array.from(messagesBox.children).some(el => el.dataset.msgId === data.msgId);
-            if (data.msgId && exist) return;
-
+        function appendMessage(data) {
             const msgEl = document.createElement('div');
-            if (data.msgId) msgEl.dataset.msgId = data.msgId;
-            msgEl.className = `msg ${isMe ? 'me' : ''}`;
+            msgEl.className = `msg ${data.isMe ? 'me' : ''}`;
             msgEl.innerHTML = `<div class="msg-meta">${data.sender}</div><div>${escapeHTML(data.text)}</div>`;
             messagesBox.appendChild(msgEl);
             messagesBox.scrollTop = messagesBox.scrollHeight;
