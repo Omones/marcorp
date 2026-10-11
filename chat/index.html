@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>P2P Чат через STUN</title>
+    <title>P2P Чат</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #e5ddd5; }
@@ -23,37 +23,35 @@
 </head>
 <body>
     <div class="container">
-        <!-- ЭКРАН НАСТРОЙКИ СВЯЗИ -->
         <div id="setup-screen" class="setup-screen">
-            <!-- ВАРИАНТ А: СОЗДАТЕЛЬ -->
+            <!-- ВАРИАНТ А -->
             <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff;">
-                <h3 style="color:#075e54;">Вариант A: Создать чат</h3>
-                <button id="btn-create" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">1. Создать токен приглашения</button>
+                <h3 style="color:#075e54;">Вариант A: Создать точку чата</h3>
+                <button id="btn-create" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Генерировать токен приглашения</button>
                 <div id="box-invite" class="hidden" style="margin-top:10px;">
-                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Скопируйте этот токен и отправьте другу:</p>
+                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Кликните и скопируйте токен ниже, затем отправьте его собеседнику:</p>
                     <textarea id="txt-local-offer" readonly onclick="this.select()"></textarea>
-                    <p style="font-size:13px; color:#555; margin-top:8px; margin-bottom:4px;">Вставьте ответный токен от друга ниже:</p>
+                    <p style="font-size:13px; color:#555; margin-top:8px; margin-bottom:4px;">Вставьте ответный токен от собеседника ниже:</p>
                     <textarea id="txt-remote-answer" placeholder="Вставьте ответный токен сюда..."></textarea>
-                    <button id="btn-accept" style="width:100%; margin-top:8px; padding:10px; background:#25d366; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">2. Подключиться</button>
+                    <button id="btn-accept" style="width:100%; margin-top:8px; padding:10px; background:#25d366; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Подключиться</button>
                 </div>
             </div>
 
             <div style="text-align:center; font-weight:bold; color:#777; margin:5px 0;">ИЛИ</div>
 
-            <!-- ВАРИАНТ Б: ПРИСОЕДИНЯЮЩИЙСЯ -->
+            <!-- ВАРИАНТ Б -->
             <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff;">
-                <h3 style="color:#075e54;">Вариант B: Войти по токену</h3>
+                <h3 style="color:#075e54;">Вариант B: Присоединиться к точке</h3>
                 <p style="font-size:13px; color:#555; margin-bottom:4px;">Вставьте токен приглашения от первого устройства:</p>
                 <textarea id="txt-remote-offer" placeholder="Вставьте токен приглашения сюда..."></textarea>
-                <button id="btn-join" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">1. Создать ответный токен</button>
+                <button id="btn-join" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Создать ответный токен</button>
                 <div id="box-answer" class="hidden" style="margin-top:10px;">
-                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Скопируйте этот ответный токен и передайте его обратно:</p>
+                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Кликните и скопируйте ответный токен ниже, передайте его обратно:</p>
                     <textarea id="txt-local-answer" readonly onclick="this.select()"></textarea>
                 </div>
             </div>
         </div>
 
-        <!-- ЭКРАН ЧАТА -->
         <div id="chat-screen" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
             <div class="chat-header" id="chat-title">💬 P2P Чат (Google STUN)</div>
             <div id="messages-box"></div>
@@ -65,9 +63,15 @@
     </div>
 
     <script>
-        // Подключаем стандартный публичный STUN-сервер Google для обхода NAT по интернету
+        // Интегрирован ваш список пяти STUN-серверов Google для стабильной связи через интернет
         const pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:://google.com' }]
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
+            ]
         });
         
         let dc = null;
@@ -90,11 +94,10 @@
             };
         }
 
-        function updateOfferToken() {
+        function updateOfferField() {
             document.getElementById('txt-local-offer').value = btoa(JSON.stringify(pc.localDescription));
         }
 
-        // Логика Создателя (Вариант A)
         document.getElementById('btn-create').onclick = async () => {
             document.getElementById('box-invite').classList.remove('hidden');
             dc = pc.createDataChannel("chat_channel");
@@ -103,11 +106,8 @@
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             
-            // Выводим базовый токен мгновенно, чтобы кнопки не висли
-            updateOfferToken();
-
-            // По мере того, как STUN-сервер Google находит интернет-маршруты, токен в поле сам обновляется
-            pc.onicecandidate = (e) => updateOfferToken();
+            updateOfferField();
+            pc.onicecandidate = (e) => updateOfferField();
         };
 
         document.getElementById('btn-accept').onclick = async () => {
@@ -116,11 +116,10 @@
             await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(atob(val))));
         };
 
-        function updateAnswerToken() {
+        function updateAnswerField() {
             document.getElementById('txt-local-answer').value = btoa(JSON.stringify(pc.localDescription));
         }
 
-        // Логика Присоединяющегося (Вариант B)
         document.getElementById('btn-join').onclick = async () => {
             const val = document.getElementById('txt-remote-offer').value.trim();
             if (!val) return;
@@ -135,11 +134,8 @@
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
-            // Выводим ответный токен мгновенно
-            updateAnswerToken();
-
-            // В фоновом режиме подмешиваем интернет-маршруты от STUN Google
-            pc.onicecandidate = (e) => updateAnswerToken();
+            updateAnswerField();
+            pc.onicecandidate = (e) => updateAnswerField();
         };
 
         function sendMessage() {
