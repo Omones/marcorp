@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>P2P Чат через Интернет</title>
+    <title>P2P Чат</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #e5ddd5; }
         .container { width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff; }
         .hidden { display: none !important; }
         .setup-screen { padding: 15px; display: flex; flex-direction: column; gap: 12px; height: 100%; overflow-y: auto; background: #f4f3f0; }
-        textarea { width: 100%; height: 110px; padding: 8px; border: 1px solid #ccc; border-radius: 8px; resize: none; font-size: 11px; font-family: monospace; background: #fff; word-break: break-all; }
+        textarea { width: 100%; height: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 8px; resize: none; font-size: 11px; font-family: monospace; background: #fff; word-break: break-all; }
         .chat-header { background: #075e54; color: white; padding: 15px; font-weight: bold; text-align: center; }
         #messages-box { flex: 1; padding: 15px; overflow-y: auto; background: #f4f3f0; display: flex; flex-direction: column; gap: 10px; }
         .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; word-break: break-word; align-self: flex-start; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -19,41 +19,46 @@
         .input-area { padding: 12px; background: #f0f0f0; border-top: 1px solid #ddd; display: flex; gap: 10px; }
         input[type="text"] { flex: 1; padding: 12px; border: 1px solid #fff; border-radius: 20px; outline: none; font-size: 16px; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         button { padding: 12px 20px; background: #075e54; color: white; border: none; font-weight: bold; border-radius: 20px; cursor: pointer; }
+        .status-msg { font-size: 12px; color: #666; font-style: italic; margin-top: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- СТАРТОВЫЙ ЭКРАН СИНХРОНИЗАЦИИ -->
+        <!-- ЭКРАН НАСТРОЙКИ СВЯЗИ -->
         <div id="setup-screen" class="setup-screen">
+            <!-- СТОРОНА А -->
             <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff;">
-                <h3 style="color:#075e54;">Вариант A: Создать точку подключения</h3>
+                <h3 style="color:#075e54;">Вариант A: Создать подключение</h3>
                 <button id="btn-create" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">1. Создать токен приглашения</button>
                 <div id="box-invite" class="hidden" style="margin-top:10px;">
-                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Скопируйте этот токен (кликните, чтобы выделить все) и отправьте собеседнику:</p>
-                    <textarea id="txt-local-offer" readonly onclick="this.select()"></textarea>
+                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Нажмите на поле, чтобы скопировать токен, и отправьте его собеседнику:</p>
+                    <textarea id="txt-local-offer" readonly onclick="this.select(); document.execCommand('copy')"></textarea>
+                    <p id="status-offer" class="status-msg">Поиск сетевых маршрутов...</p>
                     <p style="font-size:13px; color:#555; margin-top:8px; margin-bottom:4px;">Вставьте ответный токен от собеседника ниже:</p>
                     <textarea id="txt-remote-answer" placeholder="Вставьте ответный токен сюда..."></textarea>
-                    <button id="btn-accept" style="width:100%; margin-top:8px; padding:10px; background:#25d366; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">2. Подключить устройства</button>
+                    <button id="btn-accept" style="width:100%; margin-top:8px; padding:10px; background:#25d366; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">2. Подключиться</button>
                 </div>
             </div>
 
             <div style="text-align:center; font-weight:bold; color:#777; margin:5px 0;">ИЛИ</div>
 
+            <!-- СТОРОНА Б -->
             <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff;">
                 <h3 style="color:#075e54;">Вариант B: Присоединиться по токену</h3>
-                <p style="font-size:13px; color:#555; margin-bottom:4px;">Вставьте токен приглашения, полученный от первого устройства:</p>
+                <p style="font-size:13px; color:#555; margin-bottom:4px;">Вставьте токен приглашения от первого устройства:</p>
                 <textarea id="txt-remote-offer" placeholder="Вставьте токен приглашения сюда..."></textarea>
                 <button id="btn-join" style="width:100%; margin-top:8px; padding:10px; background:#075e54; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">1. Создать ответный токен</button>
                 <div id="box-answer" class="hidden" style="margin-top:10px;">
-                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Скопируйте этот ответный токен и передайте его первому устройству:</p>
-                    <textarea id="txt-local-answer" readonly onclick="this.select()"></textarea>
+                    <p style="font-size:13px; color:#555; margin-bottom:4px;">Нажмите на поле, чтобы скопировать ответный токен, и передайте его первому устройству:</p>
+                    <textarea id="txt-local-answer" readonly onclick="this.select(); document.execCommand('copy')"></textarea>
+                    <p id="status-answer" class="status-msg">Поиск сетевых маршрутов...</p>
                 </div>
             </div>
         </div>
 
-        <!-- ЭКРАН ЧАТА -->
+        <!-- ГЛАВНЫЙ ЭКРАН ЧАТА -->
         <div id="chat-screen" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
-            <div class="chat-header" id="chat-title">💬 P2P Чат по Интернету</div>
+            <div class="chat-header" id="chat-title">💬 P2P Чат (Прямое соединение)</div>
             <div id="messages-box"></div>
             <div class="input-area">
                 <input type="text" id="msg-input" placeholder="Сообщение..." maxlength="400">
@@ -63,16 +68,15 @@
     </div>
 
     <script>
-        // Подключаем стандартные встроенные STUN-серверы Google для определения внешних IP-адресов в интернете
+        // Используем встроенные в браузер STUN-серверы для обхода NAT по интернету
         const pc = new RTCPeerConnection({
             iceServers: [
-                { urls: 'stun:://google.com' },
+                { urls: 'stun.l.google.com:19302' },
                 { urls: 'stun:://google.com' }
             ]
         });
         
         let dc = null;
-
         const myUsername = Array.from({length: 3}, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
         document.getElementById('chat-title').textContent = `💬 Чат (${myUsername})`;
 
@@ -101,10 +105,11 @@
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             
-            // Ждем генерации внешних кандидатов сетью и пакуем в токен
             pc.onicecandidate = (e) => {
                 if (!e.candidate) {
                     document.getElementById('txt-local-offer').value = btoa(JSON.stringify(pc.localDescription));
+                    document.getElementById('status-offer').textContent = "✓ Токен готов и скопирован!";
+                    document.getElementById('status-offer').style.color = "#25d366";
                 }
             };
         };
@@ -133,6 +138,8 @@
             pc.onicecandidate = (e) => {
                 if (!e.candidate) {
                     document.getElementById('txt-local-answer').value = btoa(JSON.stringify(pc.localDescription));
+                    document.getElementById('status-answer').textContent = "✓ Ответный токен готов и скопирован!";
+                    document.getElementById('status-answer').style.color = "#25d366";
                 }
             };
         };
