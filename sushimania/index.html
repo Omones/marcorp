@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Сушимания Томск — заказ по телефону</title>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -13,37 +15,47 @@
         }
         
         :root {
-            --bg-main: #060813;
-            --bg-card: rgba(15, 22, 42, 0.6);
-            --border-color: rgba(255, 255, 255, 0.06);
-            --accent-red: #ef4444;
-            --accent-glow: rgba(239, 68, 68, 0.15);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --bg-main: #F8FAFC;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --border-color: #CBD5E1;
+            --border-thick: 1.5px solid #94A3B8;
+            --accent-coral: #FF451D;
+            --accent-dark: #C22A0B;
+            --text-primary: #0F172A;
+            --text-secondary: #334155;
         }
 
         body {
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: var(--bg-main);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            background-image: 
-                radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.07) 0%, transparent 40%),
-                radial-gradient(circle at 15% 70%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
-            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+        }
+
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.65;
         }
 
         html { scroll-behavior: smooth; }
 
         header {
-            background: rgba(11, 15, 25, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 2px solid var(--border-color);
             position: sticky;
             top: 0;
             z-index: 50;
@@ -52,202 +64,211 @@
         .header-container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 16px 20px;
+            padding: 14px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
+            position: relative;
+            z-index: 2;
         }
 
-        .logo { font-weight: 900; font-size: 20px; letter-spacing: 0.05em; }
-        .logo-red { color: var(--accent-red); }
-        .logo-light { font-weight: 300; color: #fff; }
+        .logo { font-weight: 900; font-size: 19px; letter-spacing: 0.02em; }
+        .logo-coral { color: var(--accent-coral); }
+        .logo-dark { font-weight: 500; color: var(--text-primary); }
 
         .header-actions { display: flex; align-items: center; gap: 8px; }
 
         .btn-menu-header {
-            background: rgba(255, 255, 255, 0.04);
-            color: #fff;
-            font-weight: 600;
+            background: #FFFFFF;
+            color: var(--text-primary);
+            font-weight: 700;
             text-decoration: none;
-            padding: 10px 16px;
+            padding: 9px 16px;
             border-radius: 12px;
             font-size: 13px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+            border: var(--border-thick);
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
         }
 
         .btn-menu-header:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
+            background: #F1F5F9;
+            border-color: var(--text-primary);
+            transform: translateY(-1px);
         }
 
         .btn-call-header {
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            background: linear-gradient(135deg, #FF5B37, var(--accent-coral));
             color: #fff;
-            font-weight: 700;
+            font-weight: 800;
             text-decoration: none;
-            padding: 10px 20px;
+            padding: 10px 18px;
             border-radius: 12px;
             font-size: 13px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+            border: 1.5px solid var(--accent-dark);
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 12px rgba(255, 69, 29, 0.15);
             white-space: nowrap;
         }
 
         .btn-call-header:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 6px 16px rgba(255, 69, 29, 0.35);
+            border-color: #0F172A;
         }
-        /* Основной контент */
+
         main {
             flex-grow: 1;
             display: flex;
             align-items: center;
-            padding: 40px 20px;
+            padding: 32px 16px;
+            position: relative;
+            z-index: 2;
         }
 
         .main-container {
-            max-width: 600px;
+            max-width: 480px;
             margin: 0 auto;
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-
         .info-block {
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             text-align: center;
         }
 
-        .badge {
-            background: rgba(239, 68, 68, 0.1);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            padding: 6px 16px;
-            border-radius: 100px;
-            display: inline-block;
-            margin-bottom: 16px;
+        @keyframes micro-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
         }
 
+        .status-badge {
+            background: rgba(255, 69, 29, 0.08);
+            color: var(--accent-dark);
+            border: 1.5px solid var(--accent-coral);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 6px 14px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-bottom: 16px;
+            animation: micro-pulse 2s infinite ease-in-out;
+        }
+
+        .meta-container {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 20px;
+            text-align: left;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02);
+        }
+
+        .meta-section { margin-bottom: 14px; }
+        .meta-section:last-child { margin-bottom: 0; }
+        .meta-label { font-size: 10px; text-transform: uppercase; color: var(--text-primary); font-weight: 800; letter-spacing: 0.05em; margin-bottom: 6px; }
+        .meta-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .meta-tag { background: #FFFFFF; border: 1.5px solid var(--border-color); padding: 5px 12px; border-radius: 10px; font-size: 13px; color: var(--text-primary); font-weight: 600; }
+        .meta-tag.highlight { background: #FFFFFF; border-color: var(--accent-coral); color: var(--accent-dark); font-weight: 700; }
+
         h1 {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 900;
             line-height: 1.25;
             letter-spacing: -0.02em;
-            margin-bottom: 14px;
-            background: linear-gradient(to right, #ffffff, #cbd5e1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            color: var(--text-primary);
         }
 
-        h1 span {
-            color: var(--accent-red);
-            -webkit-text-fill-color: initial;
-        }
+        h1 span { color: var(--accent-coral); }
 
         .description {
             color: var(--text-secondary);
             font-size: 14px;
-            line-height: 1.6;
-            max-width: 460px;
-            margin: 0 auto;
+            line-height: 1.55;
         }
 
         .card-phone {
-            background: var(--bg-card);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid var(--border-color);
+            background: #FFFFFF;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid var(--text-primary);
             border-radius: 20px;
-            padding: 24px;
+            padding: 20px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             gap: 16px;
             width: 100%;
-            max-width: 440px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 16px;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+            transition: transform 0.2s ease;
         }
 
+        .card-phone:hover { transform: translateY(-2px); }
+
         .phone-icon {
-            width: 48px;
-            height: 48px;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            width: 46px;
+            height: 46px;
+            background: rgba(255, 69, 29, 0.1);
+            border: 1.5px solid var(--accent-coral);
             border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 19px;
+            flex-shrink: 0;
         }
 
-        .phone-text-top {
-            font-size: 10px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            margin-bottom: 4px;
-        }
-
-        .phone-link {
-            font-size: 22px;
-            font-weight: 900;
-            color: #fff;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .phone-link:hover { color: #f87171; }
+        .phone-content { display: flex; flex-direction: column; }
+        .phone-text-top { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 2px; }
+        .phone-link { font-size: 21px; font-weight: 900; color: var(--text-primary); text-decoration: none; transition: color 0.2s; }
+        .phone-link:hover { color: var(--accent-coral); }
 
         .features-list {
-            background: rgba(11, 15, 25, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            background: #FFFFFF;
+            border: 1.5px solid var(--border-color);
             border-radius: 20px;
-            padding: 20px;
+            padding: 16px 20px;
             width: 100%;
-            max-width: 440px;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
         }
 
         .feature-item {
-            font-size: 13px;
+            font-size: 13.5px;
             color: var(--text-secondary);
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         .feature-item:last-child { margin-bottom: 0; }
-        .feature-item span.check { color: var(--accent-red); font-weight: 700; }
-
-        /* Мерцающий спойлер */
-        @keyframes pulse-glow {
-            0% { border-color: rgba(255, 255, 255, 0.06); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
-            50% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 25px rgba(239, 68, 68, 0.25), 0 20px 40px rgba(0, 0, 0, 0.4); }
-            100% { border-color: rgba(255, 255, 255, 0.06); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
-        }
+        .feature-item span.check { color: var(--accent-coral); font-weight: 900; }
 
         .menu-spoiler {
             width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
+            background: #FFFFFF;
+            border: 2px solid var(--text-primary);
+            border-radius: 20px;
             overflow: hidden;
-            animation: pulse-glow 3s infinite ease-in-out;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.2s;
         }
 
+        .menu-spoiler[open] { border-color: var(--accent-coral); }
+
         summary {
-            padding: 24px;
+            padding: 18px 20px;
             list-style: none;
             cursor: pointer;
             display: flex;
@@ -257,55 +278,51 @@
         }
 
         summary::-webkit-details-marker { display: none; }
-        summary:hover { background-color: rgba(255, 255, 255, 0.02); }
+        summary:hover { background-color: rgba(15, 23, 42, 0.02); }
 
-        .summary-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-        .summary-subtitle { font-size: 12px; color: var(--text-secondary); }
+        .summary-title { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+        .summary-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
 
         .toggle-icon {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            width: 36px;
-            height: 36px;
+            background: #FFFFFF;
+            border: 1.5px solid var(--text-primary);
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
-            color: var(--text-secondary);
-            transition: transform 0.3s ease;
+            font-size: 9px;
+            font-weight: 900;
+            color: var(--text-primary);
+            transition: transform 0.2s;
         }
 
-        .menu-spoiler[open] .toggle-icon { transform: rotate(180deg); color: var(--accent-red); }
+        .menu-spoiler[open] .toggle-icon { transform: rotate(180deg); color: #FFFFFF; background: var(--accent-coral); border-color: var(--accent-dark); }
 
         .menu-gallery {
-            padding: 12px 24px 24px 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 4px 18px 18px 18px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            background: rgba(5, 8, 16, 0.4);
+            gap: 12px;
+            background: var(--bg-main);
         }
 
         .menu-gallery img {
             width: 100%;
             height: auto;
-            border-radius: 14px;
-            border: 1px solid rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 1.5px solid var(--border-color);
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s, border-color 0.2s;
         }
 
-        .menu-gallery img:hover { transform: scale(1.01); }
+        .menu-gallery img:hover { transform: scale(1.01); border-color: var(--accent-coral); }
 
-        /* Новые стили полноэкранного интерактивного слайдера */
         .fullscreen-slider {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(6, 8, 19, 0.98);
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.98);
             z-index: 10000;
             display: none;
             justify-content: center;
@@ -315,17 +332,13 @@
 
         .slider-wrapper {
             position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
             overflow: hidden;
         }
 
         .slider-img {
-            max-width: 95%;
-            max-height: 95%;
+            max-width: 95%; max-height: 95%;
             object-fit: contain;
             transition: transform 0.1s ease;
             cursor: grab;
@@ -336,43 +349,42 @@
 
         .slider-btn {
             position: absolute;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #fff;
-            width: 50px;
-            height: 50px;
+            background: #FFFFFF;
+            border: 2px solid var(--text-primary);
+            color: var(--text-primary);
+            width: 46px; height: 46px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 16px;
+            font-weight: 900;
             z-index: 10010;
             backdrop-filter: blur(8px);
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
 
-        .slider-btn:hover { background: rgba(255, 255, 255, 0.1); }
-        .btn-close { top: 20px; right: 20px; font-size: 22px; }
+        .slider-btn:hover { background: var(--text-primary); color: #FFFFFF; }
+        .btn-close { top: 20px; right: 20px; font-size: 18px; }
         .btn-prev { left: 20px; }
         .btn-next { right: 20px; }
 
         footer {
-            background: #03050b;
-            padding: 20px;
+            background: #ffffff;
+            padding: 18px;
             text-align: center;
-            font-size: 10px;
-            color: #475569;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            border-top: 1px solid rgba(255, 255, 255, 0.02);
+            font-size: 11px;
+            color: var(--text-primary);
+            font-weight: 600;
+            border-top: 2px solid var(--border-color);
+            position: relative;
+            z-index: 2;
         }
 
-        @media (max-width: 520px) {
-            h1 { font-size: 22px; }
-            .description { font-size: 13px; }
-            .slider-btn { width: 40px; height: 40px; font-size: 14px; }
-            .btn-close { top: 15px; right: 15px; }
+        @media (max-width: 480px) {
+            h1 { font-size: 21px; }
+            .description { font-size: 13.5px; }
+            .card-phone { padding: 16px; border-width: 1.5px; }
+            .phone-link { font-size: 19px; }
+            .slider-btn { width: 42px; height: 42px; }
             .btn-prev { left: 10px; }
             .btn-next { right: 10px; }
         }
@@ -380,14 +392,16 @@
 </head>
 <body>
 
+    <canvas id="bgCanvas"></canvas>
+
     <header>
         <div class="header-container">
             <div class="logo">
-                <span class="logo-red">СУШИ</span><span class="logo-light">МАНИЯ</span>
+                <span class="logo-coral">СУШИ</span><span class="logo-dark">МАНИЯ</span>
             </div>
             <div class="header-actions">
-                <a href="#menu" class="btn-menu-header">📋 Меню</a>
-                <a href="tel:+73822226882" class="btn-call-header">+7(3822)22-68-82</a>
+                <a href="#menu" class="btn-menu-header">Меню</a>
+                <a href="tel:+73822226882" class="btn-call-header">+7 (3822) 22-68-82</a>
             </div>
         </div>
     </header>
@@ -396,22 +410,37 @@
         <div class="main-container">
             
             <div class="info-block">
-                                <span class="badge"> Никитина 19 
- </br> Суворова 1а </br> Иркутский 181Б
-				</br></br> график работы:
-				</br>пн-чт 10:00-22:00 </br> пт-сб 10:00-23:00 </br> вск 11:00-23:00
-				</span>
+                <span class="status-badge">Обновление системы</span>
                 <h1>Сайт и приложение <br><span>временно не работают</span></h1>
                 <p class="description">
-                    Мы проводим плановое обновление ИТ-систем доставки. Принимаем все ваши заказы в обычном режиме исключительно по телефону. Ознакомьтесь с меню ниже.
+                    Проводим плановое обновление ИТ-систем доставки. Принимаем все ваши заказы в обычном режиме исключительно по телефону. Ознакомьтесь с меню ниже.
                 </p>
+            </div>
+
+            <div class="meta-container">
+                <div class="meta-section">
+                    <div class="meta-label">Адреса самовывоза</div>
+                    <div class="meta-tags">
+                        <span class="meta-tag">Никитина 19</span>
+                        <span class="meta-tag">Суворова 1а</span>
+                        <span class="meta-tag">Иркутский 181Б</span>
+                    </div>
+                </div>
+                <div class="meta-section">
+                    <div class="meta-label">Режим работы</div>
+                    <div class="meta-tags">
+                        <span class="meta-tag highlight">Пн–Чт: 10:00 — 22:00</span>
+                        <span class="meta-tag highlight">Пт–Сб: 10:00 — 23:00</span>
+                        <span class="meta-tag highlight">Вс: 11:00 — 23:00</span>
+                    </div>
+                </div>
             </div>
 
             <div class="card-phone">
                 <div class="phone-icon">📞</div>
-                <div style="text-align: center;">
+                <div class="phone-content">
                     <div class="phone-text-top">Быстрый заказ по телефону</div>
-                    <a href="tel:+73822226882" class="phone-link">+7(3822)22-68-82</a>
+                    <a href="tel:+73822226882" class="phone-link">+7 (3822) 22-68-82</a>
                 </div>
             </div>
 
@@ -437,8 +466,8 @@
                         <div class="toggle-icon">▼</div>
                     </summary>
                     <div class="menu-gallery">
-                        <img src="https://marcorp.ru/sushimania/1.jpg" alt="Меню Сушимания Страница 1" onclick="openSlider(0)" loading="lazy">
-                        <img src="https://marcorp.ru/sushimania/2.jpg" alt="Меню Сушимания Страница 2" onclick="openSlider(3)" loading="lazy">
+                        <img src="https://marcorp.ru/sushimania/2.jpg" alt="Меню Сушимания Страница 1" onclick="openSlider(0)" loading="lazy">
+                        <img src="https://marcorp.ru/sushimania/1.jpg" alt="Меню Сушимания Страница 2" onclick="openSlider(1)" loading="lazy">
                     </div>
                 </details>
             </div>
@@ -446,7 +475,6 @@
         </div>
     </main>
 
-    <!-- Полноэкранный слайдер с поддержкой зума и перетаскивания -->
     <div id="fullscreenSlider" class="fullscreen-slider">
         <div class="slider-wrapper" id="sliderWrapper">
             <button class="slider-btn btn-close" onclick="closeSlider()">✕</button>
@@ -457,105 +485,127 @@
     </div>
 
     <footer>
-        © 2026 Сушимания Томск.
+        © 2026 Сушимания Томск. Все права защищены.
     </footer>
-
     <script>
-        const images = [
-            "https://marcorp.ru/sushimania/1.jpg",
-            "https://marcorp.ru/sushimania/2.jpg"
-        ];
-        let currentIndex = 0;
-        let scale = 1, isDragging = false, startX, startY, translateX = 0, translateY = 0;
-        
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let w = canvas.width = window.innerWidth;
+        let h = canvas.height = window.innerHeight;
+
+        const sushiTypes = ['🍣', '🍙', '🍤', '🥢'];
+        const items = [];
+        const mouse = { x: null, y: null };
+
+        class FloatingSushi {
+            constructor() {
+                this.x = Math.random() * w;
+                this.y = Math.random() * h;
+                this.size = Math.random() * 16 + 18;
+                this.char = sushiTypes[Math.floor(Math.random() * sushiTypes.length)];
+                this.speedX = Math.random() * 0.4 - 0.2;
+                this.speedY = Math.random() * 0.3 + 0.1;
+                this.angle = Math.random() * Math.PI * 2;
+                this.spin = Math.random() * 0.01 - 0.005;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.angle += this.spin;
+                if (this.y > h + 30) {
+                    this.y = -30;
+                    this.x = Math.random() * w;
+                }
+                if (this.x < -30 || this.x > w + 30) this.speedX *= -1;
+                
+                if (mouse.x !== null && mouse.y !== null) {
+                    const dx = this.x - mouse.x;
+                    const dy = this.y - mouse.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < 120) {
+                        const force = (120 - dist) / 120;
+                        this.x += (dx / dist) * force * 3;
+                        this.y += (dy / dist) * force * 3;
+                    }
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.font = `${this.size}px Inter`;
+                ctx.globalOpacity = 0.25;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.fillText(this.char, -this.size / 2, this.size / 2);
+                ctx.restore();
+            }
+        }
+
+        function initBg() {
+            const count = Math.min(25, Math.floor((w * h) / 35000));
+            items.length = 0;
+            for(let i = 0; i < count; i++) items.push(new FloatingSushi());
+        }
+
+        function animateBg() {
+            ctx.clearRect(0, 0, w, h);
+            items.forEach(item => { item.update(); item.draw(); });
+            requestAnimationFrame(animateBg);
+        }
+
+        window.addEventListener('resize', () => {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            initBg();
+        });
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null; });
+        initBg(); animateBg();
+
+        const images = ["https://marcorp.ru/sushimania/2.jpg", "https://marcorp.ru/sushimania/1.jpg"];
+        let currentIndex = 0, scale = 1, isDragging = false, startX, startY, translateX = 0, translateY = 0;
         const slider = document.getElementById('fullscreenSlider');
         const sliderImg = document.getElementById('sliderImg');
 
         function openSlider(index) {
-            currentIndex = index;
-            resetZoom();
+            currentIndex = index; resetZoom();
             sliderImg.src = images[currentIndex];
             slider.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
-
-        function closeSlider() {
-            slider.style.display = 'none';
-            document.body.style.overflow = '';
-        }
-
+        function closeSlider() { slider.style.display = 'none'; document.body.style.overflow = ''; }
         function changeSlide(direction) {
             currentIndex = (currentIndex + direction + images.length) % images.length;
-            resetZoom();
-            sliderImg.src = images[currentIndex];
+            resetZoom(); sliderImg.src = images[currentIndex];
         }
+        function resetZoom() { scale = 1; translateX = 0; translateY = 0; updateTransform(); }
+        function updateTransform() { sliderImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`; }
 
-        function resetZoom() {
-            scale = 1; translateX = 0; translateY = 0;
-            updateTransform();
-        }
-
-        function updateTransform() {
-            sliderImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-        }
-
-        // Интерактивный зум колесиком мыши (ПК)
         slider.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const zoomFactor = 0.15;
-            if (e.deltaY < 0) scale = Math.min(scale + zoomFactor, 5);
-            else scale = Math.max(scale - zoomFactor, 1);
+            e.preventDefault(); const zoom = 0.15;
+            if (e.deltaY < 0) scale = Math.min(scale + zoom, 5); else scale = Math.max(scale - zoom, 1);
             if (scale === 1) { translateX = 0; translateY = 0; }
             updateTransform();
         }, { passive: false });
 
-        // Перетаскивание мышкой или пальцем при увеличении
         const startDrag = (e) => {
-            if (scale === 1) return;
-            isDragging = true;
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
-            startX = clientX - translateX;
-            startY = clientY - translateY;
+            if (scale === 1) return; isDragging = true;
+            const cx = e.clientX || e.touches.clientX; const cy = e.clientY || e.touches.clientY;
+            startX = cx - translateX; startY = cy - translateY;
         };
-
         const doDrag = (e) => {
             if (!isDragging) return;
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            if (!clientX || !clientY) return;
-            translateX = clientX - startX;
-            translateY = clientY - startY;
-            updateTransform();
+            const cx = e.clientX || (e.touches && e.touches.clientX);
+            const cy = e.clientY || (e.touches && e.touches.clientY);
+            if (!cx || !cy) return;
+            translateX = cx - startX; translateY = cy - startY; updateTransform();
         };
-
-        const stopDrag = () => { isDragging = false; };
-
         sliderImg.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
-        window.addEventListener('mouseup', stopDrag);
-
+        window.addEventListener('mouseup', () => isDragging = false);
         sliderImg.addEventListener('touchstart', startDrag, { passive: true });
         window.addEventListener('touchmove', doDrag, { passive: false });
-        window.addEventListener('touchend', stopDrag);
-
-        // Зум щипком пальцев (Mobile)
-        let initialDist = null;
-        slider.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                if (initialDist === null) initialDist = dist;
-                else {
-                    const factor = dist / initialDist;
-                    scale = Math.max(1, Math.min(scale * factor, 5));
-                    initialDist = dist;
-                    updateTransform();
-                }
-            }
-        }, { passive: false });
-
-        slider.addEventListener('touchend', (e) => { if (e.touches.length < 2) initialDist = null; });
+        window.addEventListener('touchend', () => isDragging = false);
     </script>
 </body>
 </html>
