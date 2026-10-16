@@ -35,11 +35,12 @@
         .img-preview { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; display: block; }
         .file-download { color: #3b82f6; text-decoration: underline; font-size: 0.9rem; margin-top: 5px; display: block; }
 
-        .timer-container { width: 36px; height: 36px; position: relative; display: flex; align-items: center; justify-content: center; shrink-0; }
+        .timer-container { width: 36px; height: 36px; position: relative; display: flex; align-items: center; justify-content: center; shrink-0; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .timer-container.visible { opacity: 1; }
         .timer-svg { transform: rotate(-90deg); width: 36px; height: 36px; }
         .timer-svg circle { fill: none; stroke-width: 3.5; }
         .timer-bg { stroke: #2d2e35; }
-        .timer-progress { stroke: #82061a; stroke-linecap: round; transition: stroke-dashoffset 0.1s linear; }
+        .timer-progress { stroke: #82061a; stroke-linecap: round; }
         .timer-text { position: absolute; font-size: 0.75rem; font-weight: bold; color: #a1a1aa; }
 
         @keyframes pulse {
@@ -63,12 +64,12 @@
     
     <form class="chat-input-form" id="chatForm">
         <div class="input-row">
-            <div class="timer-container" title="До обновления чата">
+            <div class="timer-container" id="sendTimerContainer" title="Отправка сообщения...">
                 <svg class="timer-svg" viewBox="0 0 36 36">
                     <circle class="timer-bg" cx="18" cy="18" r="16"></circle>
                     <circle class="timer-progress" id="timerCircle" cx="18" cy="18" r="16" stroke-dasharray="100.53" stroke-dashoffset="0"></circle>
                 </svg>
-                <div class="timer-text" id="timerText">4</div>
+                <div class="timer-text" id="timerText">6</div>
             </div>
             
             <input type="text" id="messageInput" placeholder="Напишите сообщение..." autocomplete="off" maxlength="500">
@@ -79,7 +80,7 @@
             </label>
             
             <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
-            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (5 сек)">🎙️ Аудио</button>
+            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (15 сек)">🎙️ Аудио</button>
             <button type="submit" class="btn btn-main">Отправить</button>
         </div>
     </form>
@@ -92,15 +93,16 @@
     const messageInput = document.getElementById('messageInput');
     const myBadge = document.getElementById('myBadge');
     const onlineCount = document.getElementById('onlineCount');
+    const sendTimerContainer = document.getElementById('sendTimerContainer');
     const timerCircle = document.getElementById('timerCircle');
     const timerText = document.getElementById('timerText');
     const audioBtn = document.getElementById('audioBtn');
     const voiceRecBtn = document.getElementById('voiceRecBtn');
     const fileInput = document.getElementById('fileInput');
 
-    const UPDATE_INTERVAL = 4000; 
-    let timeLeft = UPDATE_INTERVAL;
     const circleLength = 2 * Math.PI * 16; 
+    let lastHandledMessageCount = 0;
+    let playedTtsMessages = new Set();
 
     let mediaRecorder;
     let audioChunks = [];
@@ -124,7 +126,18 @@
         return String(text).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char] || char));
     }
 
-    async function fetchMessages() {
+    // Системный синтез речи (SpeechSynthesis) вместо внешнего API гугла
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ru-RU';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    async function fetchMessages(isBackground = true) {
         try {
             const res = await fetch(GOOGLE_URL);
             const list = await res.json();
@@ -133,7 +146,7 @@
             const uniqueUsers = new Set();
             uniqueUsers.add(myName);
 
-            list.forEach(item => {
+            list.forEach((item, index) => {
                 const msgDiv = document.createElement('div');
                 msgDiv.classList.add('msg-block');
                 if (item.name === myName) msgDiv.classList.add('my-msg');
@@ -144,9 +157,16 @@
                 if (item.type === 'audio' && item.fileData) {
                     contentHtml = `<audio src="${item.fileData}" controls></audio>`;
                 } else if (item.type === 'tts' && item.message) {
-                    const ttsUrl = `https://google.com{encodeURIComponent(item.message)}`;
-                    contentHtml = `<div class="msg-text" style="font-style:italic; color:#22c55e;">📢 Робот озвучил: "${cleanHTML(item.message)}"</div>
-                                   <audio src="${ttsUrl}" controls></audio>`;
+                    contentHtml = `<div class="msg-text" style="font-style:italic; color:#22c55e;">📢 Робот озвучил: "${cleanHTML(item.message)}"</div>`;
+                    
+                    // Логика автоозвучки при рендере новых входящих сообщений
+                    const msgKey = `${item.timestamp}_${item.message}_${index}`;
+                    if (!playedTtsMessages.has(msgKey)) {
+                        playedTtsMessages.add(msgKey);
+                        if (!isBackground || item.name !== myName) {
+                            speakText(item.message);
+                        }
+                    }
                 } else if (item.type === 'file' && item.fileData) {
                     if (item.fileData.startsWith('data:image')) {
                         contentHtml = `<img class="img-preview" src="${item.fileData}" />`;
@@ -166,28 +186,48 @@
             });
             
             onlineCount.textContent = uniqueUsers.size;
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            if (list.length !== lastHandledMessageCount) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                lastHandledMessageCount = list.length;
+            }
         } catch (err) { console.error(err); }
     }
 
-    function runTimer() {
-        timeLeft -= 100;
-        if (timeLeft <= 0) { timeLeft = UPDATE_INTERVAL; fetchMessages(); }
-        timerText.textContent = Math.ceil(timeLeft / 1000);
-        const offset = (timeLeft / UPDATE_INTERVAL) * circleLength;
-        timerCircle.style.strokeDashoffset = circleLength - offset;
+    // Визуальный таймер, работающий СТРОГО во время отправки данных
+    function startSendTimer(durationMs = 6000) {
+        sendTimerContainer.classList.add('visible');
+        let start = null;
+        
+        function step(timestamp) {
+            if (!start) start = timestamp;
+            let progress = timestamp - start;
+            let remaining = Math.max(0, durationMs - progress);
+            
+            timerText.textContent = Math.ceil(remaining / 1000);
+            
+            const offset = (remaining / durationMs) * circleLength;
+            timerCircle.style.strokeDashoffset = circleLength - offset;
+            
+            if (progress < durationMs) {
+                window.requestAnimationFrame(step);
+            } else {
+                sendTimerContainer.classList.remove('visible');
+            }
+        }
+        window.requestAnimationFrame(step);
     }
 
     async function sendData(msg, type = 'text', fileData = '') {
+        startSendTimer(6000); 
         try {
             const params = new URLSearchParams();
             params.append('name', myName);
             params.append('message', msg);
             params.append('type', type);
             params.append('fileData', fileData);
-            timeLeft = UPDATE_INTERVAL;
+            
             await fetch(GOOGLE_URL, { method: 'POST', body: params });
-            fetchMessages();
+            await fetchMessages(false);
         } catch (err) { alert("Ошибка отправки."); }
     }
 
@@ -246,11 +286,12 @@
         if (isRecording) return;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus', bitsPerSecond: 16000 });
+            // Оптимизация под жесткие лимиты Google Таблиц для записи до 15 секунд
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus', bitsPerSecond: 8000 });
             audioChunks = [];
             isRecording = true;
             audioBtn.classList.add('btn-active');
-            audioBtn.textContent = "🛑 5 сек...";
+            audioBtn.textContent = "🛑 15 сек...";
 
             mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
             mediaRecorder.onstop = () => {
@@ -267,13 +308,14 @@
             };
 
             mediaRecorder.start();
-            setTimeout(() => { if (mediaRecorder.state === "recording") mediaRecorder.stop(); }, 5000);
+            setTimeout(() => { if (mediaRecorder.state === "recording") mediaRecorder.stop(); }, 15000);
 
-        } catch (err) { alert("Доступ к микрофону заблокирован или не поддерживается."); }
+        } catch (err) { alert("Доступ к микрофону заблокирован."); }
     });
 
-    fetchMessages();
-    setInterval(runTimer, 100);
+    // Первичная синхронизация и тихий фоновый опрос раз в 5 секунд
+    fetchMessages(false);
+    setInterval(() => { fetchMessages(true); }, 5000);
 </script>
 </body>
 </html>
