@@ -3,87 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Приватный Чат</title>
+    <title>Мультимедиа Чат</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #131417; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #131417; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .chat-box { width: 100vw; height: 100vh; display: flex; flex-direction: column; background: #18191d; }
-        .chat-header { background: #1f2026; padding: 15px 20px; font-weight: 700; font-size: 1.1rem; border-b: 1px solid #2d2e35; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header { background: #1f2026; padding: 15px 20px; font-weight: 700; font-size: 1.1rem; border-bottom: 1px solid #2d2e35; display: flex; justify-content: space-between; align-items: center; }
+        .header-meta { display: flex; align-items: center; gap: 15px; }
         .user-badge { font-size: 0.85rem; color: #a1a1aa; background: #2d2e35; padding: 4px 10px; border-radius: 12px; }
+        .online-badge { font-size: 0.85rem; color: #22c55e; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; }
+        .online-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; }
         .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         .msg-block { max-width: 75%; padding: 10px 14px; border-radius: 14px; background: #2d2e35; align-self: flex-start; line-height: 1.4; word-break: break-word; }
         .msg-block.my-msg { background: #82061a; align-self: flex-end; }
-        .msg-meta { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 3px; font-weight: 600; display: flex; justify-content: space-between; gap: 15px; }
+        .msg-meta { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 5px; font-weight: 600; display: flex; justify-content: space-between; gap: 15px; }
         .msg-text { font-size: 0.95rem; white-space: pre-wrap; }
-        .chat-input-form { display: flex; padding: 15px 20px; background: #1f2026; border-t: 1px solid #2d2e35; gap: 10px; }
-        .chat-input-form input { flex: 1; background: #131417; border: 1px solid #2d2e35; padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
+        .chat-input-form { display: flex; padding: 15px 20px; background: #1f2026; border-top: 1px solid #2d2e35; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .input-row { display: flex; flex: 1; gap: 10px; align-items: center; width: 100%; }
+        .chat-input-form input[type="text"] { flex: 1; background: #131417; border: 1px solid #2d2e35; padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
         .chat-input-form input:focus { border-color: #82061a; }
-        .chat-input-form button { background: #82061a; color: white; border: none; padding: 0 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
-        .chat-input-form button:hover { background: #b90f2d; }
+        
+        .btn { background: #2d2e35; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; display: flex; align-items: center; justify-content: center; height: 46px; }
+        .btn:hover { background: #3e3f46; }
+        .btn-main { background: #82061a; }
+        .btn-main:hover { background: #b90f2d; }
+        .btn-active { background: #22c55e !important; animation: pulse 1s infinite; }
+        
+        .file-label { cursor: pointer; }
+        #fileInput { display: none; }
+        audio { max-width: 240px; height: 35px; margin-top: 5px; display: block; }
+        .img-preview { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; display: block; }
+        .file-download { color: #3b82f6; text-decoration: underline; font-size: 0.9rem; margin-top: 5px; display: block; }
+
+        .timer-container { width: 36px; height: 36px; position: relative; display: flex; align-items: center; justify-content: center; shrink-0; }
+        .timer-svg { transform: rotate(-90deg); width: 36px; height: 36px; }
+        .timer-svg circle { fill: none; stroke-width: 3.5; }
+        .timer-bg { stroke: #2d2e35; }
+        .timer-progress { stroke: #82061a; stroke-linecap: round; transition: stroke-dashoffset 0.1s linear; }
+        .timer-text { position: absolute; font-size: 0.75rem; font-weight: bold; color: #a1a1aa; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
 <div class="chat-box">
     <div class="chat-header">
-        <span>Общий Канал</span>
-        <span class="user-badge" id="myBadge">...</span>
+        <span>Мультимедиа Канал</span>
+        <div class="header-meta">
+            <div class="online-badge"><span class="online-dot"></span>Онлайн: <span id="onlineCount">1</span></div>
+            <span class="user-badge" id="myBadge">...</span>
+        </div>
     </div>
     <div class="chat-messages" id="chatMessages">Загрузка сообщений...</div>
+    
     <form class="chat-input-form" id="chatForm">
-        <input type="text" id="messageInput" placeholder="Напишите сообщение..." required autocomplete="off" maxlength="500">
-        <button type="submit">Отправить</button>
+        <div class="input-row">
+            <div class="timer-container" title="До обновления чата">
+                <svg class="timer-svg" viewBox="0 0 36 36">
+                    <circle class="timer-bg" cx="18" cy="18" r="16"></circle>
+                    <circle class="timer-progress" id="timerCircle" cx="18" cy="18" r="16" stroke-dasharray="100.53" stroke-dashoffset="0"></circle>
+                </svg>
+                <div class="timer-text" id="timerText">4</div>
+            </div>
+            
+            <input type="text" id="messageInput" placeholder="Напишите сообщение..." autocomplete="off" maxlength="500">
+            
+            <label class="btn file-label" title="Отправить файл (до 30КБ)">
+                📎
+                <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
+            </label>
+            
+            <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
+            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (5 сек)">🎙️ Аудио</button>
+            <button type="submit" class="btn btn-main">Отправить</button>
+        </div>
     </form>
 </div>
-
 <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwxB8rJZVzor7CstPTjVZYZNIYeMMGDZ15DdW02ajX_dzjxN0A16oho33M1UhU1yDdB/exec";
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbz7Ujv7a2iK8I12ZoPLsPdwFGEoO_qhGHvkwtGN5zmgHAeGCVfPyzjlfX4CeII9FkuO/exec";
 
     const chatMessages = document.getElementById('chatMessages');
     const chatForm = document.getElementById('chatForm');
     const messageInput = document.getElementById('messageInput');
     const myBadge = document.getElementById('myBadge');
+    const onlineCount = document.getElementById('onlineCount');
+    const timerCircle = document.getElementById('timerCircle');
+    const timerText = document.getElementById('timerText');
+    const audioBtn = document.getElementById('audioBtn');
+    const voiceRecBtn = document.getElementById('voiceRecBtn');
+    const fileInput = document.getElementById('fileInput');
 
-    // Генерация случайного ника из 3 букв
-    function generateRandomNick() {
+    const UPDATE_INTERVAL = 4000; 
+    let timeLeft = UPDATE_INTERVAL;
+    const circleLength = 2 * Math.PI * 16; 
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+    let isRecognizing = false;
+
+    function generatePureNick() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         let result = '';
-        for (let i = 0; i < 3; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return '' + result;
+        for (let i = 0; i < 3; i++) { result += chars.charAt(Math.floor(Math.random() * chars.length)); }
+        return result;
     }
 
-    // Сохраняем имя на время текущей сессии вкладки
-    if (!sessionStorage.getItem('chat_user_name')) {
-        sessionStorage.setItem('chat_user_name', generateRandomNick());
+    if (!sessionStorage.getItem('chat_user_pure_name')) {
+        sessionStorage.setItem('chat_user_pure_name', generatePureNick());
     }
-    const myName = sessionStorage.getItem('chat_user_name');
+    const myName = sessionStorage.getItem('chat_user_pure_name');
     myBadge.textContent = myName;
 
-    // Безопасное экранирование текста
     function cleanHTML(text) {
         return String(text).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char] || char));
     }
 
-    // Функция загрузки данных из таблицы
     async function fetchMessages() {
         try {
             const res = await fetch(GOOGLE_URL);
             const list = await res.json();
-            
             chatMessages.innerHTML = '';
-            if (list.length === 0) {
-                chatMessages.innerHTML = '<div style="color:#a1a1aa; text-align:center; margin-top:20px;">Сообщений пока нет</div>';
-                return;
-            }
+            
+            const uniqueUsers = new Set();
+            uniqueUsers.add(myName);
 
             list.forEach(item => {
                 const msgDiv = document.createElement('div');
                 msgDiv.classList.add('msg-block');
-                
-                if (item.name === myName) {
-                    msgDiv.classList.add('my-msg');
+                if (item.name === myName) msgDiv.classList.add('my-msg');
+                if (item.name) uniqueUsers.add(item.name);
+
+                let contentHtml = `<div class="msg-text">${cleanHTML(item.message)}</div>`;
+
+                if (item.type === 'audio' && item.fileData) {
+                    contentHtml = `<audio src="${item.fileData}" controls></audio>`;
+                } else if (item.type === 'tts' && item.message) {
+                    const ttsUrl = `https://google.com{encodeURIComponent(item.message)}`;
+                    contentHtml = `<div class="msg-text" style="font-style:italic; color:#22c55e;">📢 Робот озвучил: "${cleanHTML(item.message)}"</div>
+                                   <audio src="${ttsUrl}" controls></audio>`;
+                } else if (item.type === 'file' && item.fileData) {
+                    if (item.fileData.startsWith('data:image')) {
+                        contentHtml = `<img class="img-preview" src="${item.fileData}" />`;
+                    } else {
+                        contentHtml = `<a class="file-download" href="${item.fileData}" download="file">💾 Скачать файл</a>`;
+                    }
                 }
 
                 msgDiv.innerHTML = `
@@ -91,45 +160,120 @@
                         <span>${cleanHTML(item.name)}</span>
                         <span>${cleanHTML(item.timestamp)}</span>
                     </div>
-                    <div class="msg-text">${cleanHTML(item.message)}</div>
+                    ${contentHtml}
                 `;
                 chatMessages.appendChild(msgDiv);
             });
+            
+            onlineCount.textContent = uniqueUsers.size;
             chatMessages.scrollTop = chatMessages.scrollHeight;
-        } catch (err) {
-            console.error("Ошибка при получении данных:", err);
-        }
+        } catch (err) { console.error(err); }
     }
 
-    // Обработка отправки формы
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = messageInput.value.trim();
-        if (!text) return;
+    function runTimer() {
+        timeLeft -= 100;
+        if (timeLeft <= 0) { timeLeft = UPDATE_INTERVAL; fetchMessages(); }
+        timerText.textContent = Math.ceil(timeLeft / 1000);
+        const offset = (timeLeft / UPDATE_INTERVAL) * circleLength;
+        timerCircle.style.strokeDashoffset = circleLength - offset;
+    }
 
-        messageInput.value = '';
-
+    async function sendData(msg, type = 'text', fileData = '') {
         try {
             const params = new URLSearchParams();
             params.append('name', myName);
-            params.append('message', text);
-
-            await fetch(GOOGLE_URL, {
-                method: 'POST',
-                body: params,
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            });
-            
+            params.append('message', msg);
+            params.append('type', type);
+            params.append('fileData', fileData);
+            timeLeft = UPDATE_INTERVAL;
+            await fetch(GOOGLE_URL, { method: 'POST', body: params });
             fetchMessages();
-        } catch (err) {
-            alert("Ошибка отправки. Попробуйте еще раз.");
-        }
+        } catch (err) { alert("Ошибка отправки."); }
+    }
+
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = messageInput.value.trim();
+        if (!text) return;
+        messageInput.value = '';
+        sendData(text, 'text');
     });
 
-    // Первичный запуск и цикл обновления раз в 4 секунды
-    fetchMessages();
-    setInterval(fetchMessages, 4000);
-</script>
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (file.size > 30000) { alert("Файл слишком большой! Лимит для таблицы — 30 КБ."); return; }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            sendData(file.name, 'file', e.target.result);
+        };
+        reader.readAsDataURL(file);
+        fileInput.value = '';
+    });
 
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ru-RU';
+        recognition.interimResults = false;
+
+        voiceRecBtn.addEventListener('click', () => {
+            if (isRecognizing) return;
+            isRecognizing = true;
+            voiceRecBtn.classList.add('btn-active');
+            voiceRecBtn.textContent = "🎙️ Слушаю...";
+            recognition.start();
+        });
+
+        recognition.onresult = (event) => {
+            const resultText = event.results[0][0].transcript;
+            if (resultText.trim()) {
+                sendData(resultText, 'tts');
+            }
+        };
+
+        recognition.onend = () => {
+            isRecognizing = false;
+            voiceRecBtn.classList.remove('btn-active');
+            voiceRecBtn.textContent = "🎤 Робот";
+        };
+    } else {
+        voiceRecBtn.style.display = 'none';
+    }
+
+    audioBtn.addEventListener('click', async () => {
+        if (isRecording) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus', bitsPerSecond: 16000 });
+            audioChunks = [];
+            isRecording = true;
+            audioBtn.classList.add('btn-active');
+            audioBtn.textContent = "🛑 5 сек...";
+
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    sendData('Голосовое сообщение', 'audio', reader.result);
+                };
+                reader.readAsDataURL(audioBlob);
+                isRecording = false;
+                audioBtn.classList.remove('btn-active');
+                audioBtn.textContent = "🎙️ Аудио";
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            setTimeout(() => { if (mediaRecorder.state === "recording") mediaRecorder.stop(); }, 5000);
+
+        } catch (err) { alert("Доступ к микрофону заблокирован или не поддерживается."); }
+    });
+
+    fetchMessages();
+    setInterval(runTimer, 100);
+</script>
 </body>
 </html>
