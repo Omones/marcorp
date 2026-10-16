@@ -101,3 +101,81 @@ function handleSaveOrder(e) {
     if (typeof renderOrdersTable === 'function') renderOrdersTable();
     closeModal();
 }
+document.addEventListener('DOMContentLoaded', () => {
+    // Находим новые элементы интерфейса
+    const topExportBtn = document.getElementById('top-export-btn');
+    const topImportBtn = document.getElementById('top-import-btn');
+    const dbFileInput = document.getElementById('database-file-input');
+
+    // Хэндлер выгрузки (экспорта) базы данных
+    if (topExportBtn) {
+        topExportBtn.addEventListener('click', () => {
+            // Формируем единый объект резервной копии
+            const backupData = {
+                orders: JSON.parse(localStorage.getItem('scots_orders')) || [],
+                customers: JSON.parse(localStorage.getItem('scots_customers')) || []
+            };
+
+            // Переводим в JSON-строку с красивыми отступами
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 4));
+            
+            // Создаем временную ссылку для скачивания файла
+            const downloadAnchor = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `scots_db_backup_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        });
+    }
+
+    // При нажатии на кнопку "Импорт", имитируем клик по скрытому input type="file"
+    if (topImportBtn && dbFileInput) {
+        topImportBtn.addEventListener('click', () => {
+            dbFileInput.click();
+        });
+
+        // Хэндлер загрузки (импорта) базы данных из файла
+        dbFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const parsedData = JSON.parse(event.target.result);
+                    
+                    // Валидация структуры загружаемого файла
+                    if (!parsedData || (!Array.isArray(parsedData.orders) && !Array.isArray(parsedData.customers))) {
+                        throw new Error("Неверная структура JSON-файла резервной копии.");
+                    }
+
+                    if (confirm("Вы уверены, что хотите затереть текущую базу данных и восстановить данные из файла?")) {
+                        // Перезаписываем данные в LocalStorage
+                        if (Array.isArray(parsedData.orders)) {
+                            orders = parsedData.orders;
+                            localStorage.setItem('scots_orders', JSON.stringify(orders));
+                        }
+                        if (Array.isArray(parsedData.customers)) {
+                            customers = parsedData.customers;
+                            localStorage.setItem('scots_customers', JSON.stringify(customers));
+                        }
+
+                        // Обновляем таблицы и связанные выпадающие списки на лету
+                        if (typeof renderOrdersTable === 'function') renderOrdersTable();
+                        if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
+
+                        alert("База данных успешно импортирована!");
+                    }
+                } catch (err) {
+                    alert("Ошибка при чтении файла: " + err.message);
+                }
+                // Сбрасываем значение инпута, чтобы можно было загрузить тот же файл повторно
+                dbFileInput.value = '';
+            };
+            reader.readAsText(file);
+        });
+    }
+});

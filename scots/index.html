@@ -15,6 +15,11 @@
 
     <div class="taxi-command-panel">
         <button class="taxi-btn taxi-btn-accent" id="top-create-btn">➕ Создать заказ</button>
+		<!-- Разместить внутри <div class="taxi-command-panel"> -->
+<button type="button" class="taxi-btn" id="top-export-btn" title="Выгрузить базу данных в JSON-файл">📥 Экспорт БД</button>
+<button type="button" class="taxi-btn" id="top-import-btn" title="Загрузить базу данных из JSON-файла">📤 Импорт БД</button>
+<input type="file" id="database-file-input" accept=".json" style="display: none;">
+
         <div style="margin-left: auto; display: flex; align-items: center; font-weight: bold; font-size: 15px;">
             Маржа (исполненные):&nbsp;<span id="total-profit-counter" style="color: var(--taxi-status-green-text); background: var(--taxi-status-green-bg); padding: 4px 10px; border-radius: 4px; border: 1px solid #bbf7d0;">0 р.</span>
         </div>
@@ -26,7 +31,7 @@
                 <table class="taxi-table">
                     <thead>
                         <tr>
-                            <th style="width: 60px;">Номер</th>
+                            <th style="width: 60px;">№</th>
                             <th style="width: 130px;">Дата</th>
                             <th style="width: 110px;">План. приб.</th>
                             <th>Клиент</th>

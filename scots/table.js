@@ -98,7 +98,7 @@ function renderOrdersTable() {
             '</td>' +
             '<td id="profit-td-' + index + '" class="' + profitClass + '">' + profit + ' р.</td>' +
             '<td style="white-space:nowrap; text-align:center;">' +
-            '<button class="btn-icon" title="Редактировать / Открыть" onclick="openOrderModal(' + index + ')">📝</button>' +
+            '<button class="btn-icon" title="Редактировать / Открыть" onclick="openOrderModal(' + index + ')"><img src="images/pencil.png"></img></button>' +
             '<button class="btn-icon" title="Удалить заказ" onclick="deleteOrder(' + index + ')">🗑️</button>' +
             '</td>';
         const selectEl = tr.querySelector('select');
