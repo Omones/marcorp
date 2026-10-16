@@ -18,6 +18,11 @@
         .msg-block.my-msg { background: #82061a; align-self: flex-end; }
         .msg-meta { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 5px; font-weight: 600; display: flex; justify-content: space-between; gap: 15px; }
         .msg-text { font-size: 0.95rem; white-space: pre-wrap; }
+        
+        .tts-container { display: flex; align-items: center; gap: 10px; margin-top: 5px; background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.2); }
+        .tts-btn { background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 4px; }
+        .tts-btn:hover { background: #16a34a; }
+        
         .chat-input-form { display: flex; padding: 15px 20px; background: #1f2026; border-top: 1px solid #2d2e35; gap: 10px; align-items: center; flex-wrap: wrap; }
         .input-row { display: flex; flex: 1; gap: 10px; align-items: center; width: 100%; }
         .chat-input-form input[type="text"] { flex: 1; background: #131417; border: 1px solid #2d2e35; padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
@@ -43,11 +48,7 @@
         .timer-progress { stroke: #82061a; stroke-linecap: round; }
         .timer-text { position: absolute; font-size: 0.75rem; font-weight: bold; color: #a1a1aa; }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -71,14 +72,10 @@
                 </svg>
                 <div class="timer-text" id="timerText">6</div>
             </div>
-            
             <input type="text" id="messageInput" placeholder="Напишите сообщение..." autocomplete="off" maxlength="500">
-            
             <label class="btn file-label" title="Отправить файл (до 30КБ)">
-                📎
-                <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
+                📎 <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
             </label>
-            
             <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
             <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (15 сек)">🎙️ Аудио</button>
             <button type="submit" class="btn btn-main">Отправить</button>
@@ -126,7 +123,6 @@
         return String(text).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char] || char));
     }
 
-    // Системный синтез речи (SpeechSynthesis) вместо внешнего API гугла
     function speakText(text) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel(); 
@@ -157,13 +153,18 @@
                 if (item.type === 'audio' && item.fileData) {
                     contentHtml = `<audio src="${item.fileData}" controls></audio>`;
                 } else if (item.type === 'tts' && item.message) {
-                    contentHtml = `<div class="msg-text" style="font-style:italic; color:#22c55e;">📢 Робот озвучил: "${cleanHTML(item.message)}"</div>`;
+                    contentHtml = `
+                        <div class="msg-text" style="font-style:italic; color:#22c55e;">📢 Текст для робота:</div>
+                        <div class="msg-text">"${cleanHTML(item.message)}"</div>
+                        <div class="tts-container">
+                            <button class="tts-btn" onclick="speakText('${cleanHTML(item.message).replace(/'/g, "\\\\'").replace(/"/g, '\\"')}')">▶️ Озвучить</button>
+                        </div>
+                    `;
                     
-                    // Логика автоозвучки при рендере новых входящих сообщений
                     const msgKey = `${item.timestamp}_${item.message}_${index}`;
                     if (!playedTtsMessages.has(msgKey)) {
                         playedTtsMessages.add(msgKey);
-                        if (!isBackground || item.name !== myName) {
+                        if (isBackground && item.name !== myName) {
                             speakText(item.message);
                         }
                     }
@@ -192,8 +193,6 @@
             }
         } catch (err) { console.error(err); }
     }
-
-    // Визуальный таймер, работающий СТРОГО во время отправки данных
     function startSendTimer(durationMs = 6000) {
         sendTimerContainer.classList.add('visible');
         let start = null;
@@ -204,7 +203,6 @@
             let remaining = Math.max(0, durationMs - progress);
             
             timerText.textContent = Math.ceil(remaining / 1000);
-            
             const offset = (remaining / durationMs) * circleLength;
             timerCircle.style.strokeDashoffset = circleLength - offset;
             
@@ -220,13 +218,18 @@
     async function sendData(msg, type = 'text', fileData = '') {
         startSendTimer(6000); 
         try {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
             const params = new URLSearchParams();
             params.append('name', myName);
             params.append('message', msg);
+            params.append('timestamp', timeString);
             params.append('type', type);
             params.append('fileData', fileData);
             
             await fetch(GOOGLE_URL, { method: 'POST', body: params });
+            if (type === 'tts') { speakText(msg); }
             await fetchMessages(false);
         } catch (err) { alert("Ошибка отправки."); }
     }
@@ -268,9 +271,7 @@
 
         recognition.onresult = (event) => {
             const resultText = event.results[0][0].transcript;
-            if (resultText.trim()) {
-                sendData(resultText, 'tts');
-            }
+            if (resultText.trim()) { sendData(resultText, 'tts'); }
         };
 
         recognition.onend = () => {
@@ -286,7 +287,6 @@
         if (isRecording) return;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            // Оптимизация под жесткие лимиты Google Таблиц для записи до 15 секунд
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus', bitsPerSecond: 8000 });
             audioChunks = [];
             isRecording = true;
@@ -309,11 +309,9 @@
 
             mediaRecorder.start();
             setTimeout(() => { if (mediaRecorder.state === "recording") mediaRecorder.stop(); }, 15000);
-
         } catch (err) { alert("Доступ к микрофону заблокирован."); }
     });
 
-    // Первичная синхронизация и тихий фоновый опрос раз в 5 секунд
     fetchMessages(false);
     setInterval(() => { fetchMessages(true); }, 5000);
 </script>
