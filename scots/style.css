@@ -1,0 +1,90 @@
+:root {
+    --taxi-yellow: #ffcc00;
+    --taxi-yellow-hover: #ffb700;
+    --taxi-orange: #ff9900;
+    --taxi-bg: #f4f3f0;
+    --taxi-text: #2c2c2c;
+    --taxi-border: #dcdbc9;
+    --taxi-card-bg: #ffffff;
+    
+    /* Статусы управляемых форм */
+    --taxi-status-red-bg: #ffebeb;
+    --taxi-status-red-text: #c00000;
+    --taxi-status-green-bg: #ebfbeb;
+    --taxi-status-green-text: #008000;
+    --taxi-status-yellow-bg: #fffdeb;
+    --taxi-status-yellow-text: #806600;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: Roboto, -apple-system, sans-serif; font-size: 14px; }
+body.taxi-body { background-color: var(--taxi-bg); color: var(--taxi-text); padding: 0 0 20px 0; }
+
+/* Верхняя панель */
+.taxi-top-bar { background-color: #333333; display: flex; align-items: center; padding: 0 15px; height: 40px; }
+.taxi-logo { background-color: var(--taxi-orange); color: #fff; font-weight: 900; text-transform: uppercase; font-size: 14px; padding: 2px 8px; border-radius: 4px; margin-right: 20px; letter-spacing: 0.5px; }
+.taxi-tab { color: #bbbbbb; padding: 10px 20px; font-weight: 500; cursor: default; height: 100%; display: flex; align-items: center; border-bottom: 3px solid transparent; }
+.taxi-tab.active { color: #ffffff; border-bottom-color: var(--taxi-yellow); background-color: #444444; }
+
+/* Командный интерфейс */
+.taxi-command-panel { background-color: #ffffff; padding: 8px 15px; border-bottom: 1px solid var(--taxi-border); display: flex; gap: 10px; flex-wrap: wrap; }
+.taxi-btn { background-color: #f5f5f5; border: 1px solid #b5b5b5; padding: 6px 16px; border-radius: 4px; cursor: pointer; font-weight: 500; transition: all 0.15s ease-in-out; }
+.taxi-btn:hover { background-color: #eaeaea; border-color: #999; }
+.taxi-btn-accent { background-color: var(--taxi-yellow); border-color: #ccaa00; }
+.taxi-btn-accent:hover { background-color: var(--taxi-yellow-hover); }
+
+/* Основное рабочее пространство */
+.taxi-container { padding: 15px; width: 100%; }
+.taxi-workspace-card { background: var(--taxi-card-bg); border: 1px solid var(--taxi-border); border-radius: 6px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+/* Таблицы учета */
+.table-responsive { width: 100%; overflow-x: auto; background: #ffffff; border: 1px solid var(--taxi-border); border-radius: 4px; }
+.taxi-table { width: 100%; border-collapse: collapse; text-align: left; background: #ffffff; }
+.taxi-table th, .taxi-table td { border: 1px solid #e1e0d3; padding: 8px 10px; vertical-align: middle; }
+.taxi-table th { background-color: #f9f8f3; font-weight: 500; color: #5a5a5a; border-bottom: 2px solid var(--taxi-border); position: sticky; top: 0; }
+.taxi-table tr:hover { background-color: #fffdec; }
+
+.profit-positive { background-color: var(--taxi-status-green-bg) !important; color: var(--taxi-status-green-text); font-weight: bold; }
+.profit-negative { background-color: var(--taxi-status-red-bg) !important; color: var(--taxi-status-red-text); font-weight: bold; }
+
+.badge { display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; border-radius: 4px; border: 1px solid #dcdbc9; }
+.badge-await { color: var(--taxi-status-red-text); background-color: var(--taxi-status-red-bg); border-color: #fca5a5; }
+.badge-paid { color: var(--taxi-status-green-text); background-color: var(--taxi-status-green-bg); border-color: #bbf7d0; }
+.badge-supply { color: var(--taxi-status-yellow-text); background-color: var(--taxi-status-yellow-bg); border-color: #fef08a; }
+
+/* Стилизация окон документов */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.25); overflow-y: auto; padding: 15px; }
+.taxi-form-window { background-color: var(--taxi-bg); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); width: 100%; max-width: 780px; margin: 1% auto; overflow: hidden; border: 1px solid #b5b5b5; }
+.taxi-window-header { background-color: #ffffff; padding: 10px 15px; font-weight: bold; font-size: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--taxi-border); color: #000; }
+.close-modal-btn { cursor: pointer; font-size: 20px; color: #888; transition: color 0.1s; }
+.close-modal-btn:hover { color: #000; }
+
+.taxi-window-body { padding: 15px; }
+.taxi-form-section { background-color: #ffffff; border: 1px solid var(--taxi-border); border-radius: 6px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+.taxi-section-title { font-weight: bold; font-size: 14px; margin-bottom: 12px; color: var(--taxi-orange); border-bottom: 1px solid #e1e0d3; padding-bottom: 4px; }
+
+/* Формы и сетка ввода */
+.taxi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; }
+.form-group label { font-size: 13px; color: #666666; margin-bottom: 3px; display: block; }
+input, select, textarea { border: 1px solid #b5b5b5; border-radius: 4px; padding: 6px 10px; background: #ffffff; color: #000; outline: none; transition: border-color 0.15s; }
+input:focus, select:focus, textarea:focus { border-color: var(--taxi-orange); box-shadow: 0 0 0 2px #ff990022; }
+
+/* Инструменты спецификации */
+.taxi-table-toolbar { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.taxi-table-wrapper { border: 1px solid var(--taxi-border); border-radius: 4px; max-height: 220px; overflow-y: auto; background: #fff; }
+.modal-table-input { width: 100%; border: 1px solid transparent; padding: 4px; text-align: right; background: transparent; }
+.modal-table-input:focus { background: #fff; border-color: var(--taxi-orange); }
+
+.taxi-total-field { font-weight: bold; font-size: 16px; color: #000; background-color: #fffdec; border-color: var(--taxi-orange); }
+.taxi-btn-sm { padding: 4px 12px; border-radius: 4px; border: 1px solid #b5b5b5; background: #fff; cursor: pointer; font-weight: 500; }
+.taxi-btn-sm:hover { background: #f5f5f5; }
+.taxi-select-sm { padding: 4px; height: 28px; width: auto; max-width: 280px; border-radius: 4px; }
+
+.btn-icon { font-size: 14px; cursor: pointer; background: none; border: none; }
+.taxi-window-actions { display: flex; justify-content: flex-start; gap: 12px; padding-top: 5px; }
+.taxi-btn-save { background-color: var(--taxi-orange); color: #fff; border-color: #cc7a00; font-weight: bold; }
+.taxi-btn-save:hover { background-color: #e68a00; }
+
+@media (max-width: 768px) {
+    .taxi-grid { grid-template-columns: 1fr; }
+    .form-group[style*="grid-column"] { grid-column: auto !important; }
+}
