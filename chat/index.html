@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Приватный Чат</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #131417; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .chat-box { width: 100vw; height: 100vh; display: flex; flex-direction: column; background: #18191d; }
+        .chat-header { background: #1f2026; padding: 15px 20px; font-weight: 700; font-size: 1.1rem; border-b: 1px solid #2d2e35; display: flex; justify-content: space-between; align-items: center; }
+        .user-badge { font-size: 0.85rem; color: #a1a1aa; background: #2d2e35; padding: 4px 10px; border-radius: 12px; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg-block { max-width: 75%; padding: 10px 14px; border-radius: 14px; background: #2d2e35; align-self: flex-start; line-height: 1.4; word-break: break-word; }
+        .msg-block.my-msg { background: #82061a; align-self: flex-end; }
+        .msg-meta { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 3px; font-weight: 600; display: flex; justify-content: space-between; gap: 15px; }
+        .msg-text { font-size: 0.95rem; white-space: pre-wrap; }
+        .chat-input-form { display: flex; padding: 15px 20px; background: #1f2026; border-t: 1px solid #2d2e35; gap: 10px; }
+        .chat-input-form input { flex: 1; background: #131417; border: 1px solid #2d2e35; padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
+        .chat-input-form input:focus { border-color: #82061a; }
+        .chat-input-form button { background: #82061a; color: white; border: none; padding: 0 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
+        .chat-input-form button:hover { background: #b90f2d; }
+    </style>
+</head>
+<body>
+
+<div class="chat-box">
+    <div class="chat-header">
+        <span>Общий Канал</span>
+        <span class="user-badge" id="myBadge">...</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">Загрузка сообщений...</div>
+    <form class="chat-input-form" id="chatForm">
+        <input type="text" id="messageInput" placeholder="Напишите сообщение..." required autocomplete="off" maxlength="500">
+        <button type="submit">Отправить</button>
+    </form>
+</div>
+
+<script>
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwxB8rJZVzor7CstPTjVZYZNIYeMMGDZ15DdW02ajX_dzjxN0A16oho33M1UhU1yDdB/exec";
+
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm = document.getElementById('chatForm');
+    const messageInput = document.getElementById('messageInput');
+    const myBadge = document.getElementById('myBadge');
+
+    // Генерация случайного ника из 3 букв
+    function generateRandomNick() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 3; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return 'User_' + result;
+    }
+
+    // Сохраняем имя на время текущей сессии вкладки
+    if (!sessionStorage.getItem('chat_user_name')) {
+        sessionStorage.setItem('chat_user_name', generateRandomNick());
+    }
+    const myName = sessionStorage.getItem('chat_user_name');
+    myBadge.textContent = myName;
+
+    // Безопасное экранирование текста
+    function cleanHTML(text) {
+        return String(text).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char] || char));
+    }
+
+    // Функция загрузки данных из таблицы
+    async function fetchMessages() {
+        try {
+            const res = await fetch(GOOGLE_URL);
+            const list = await res.json();
+            
+            chatMessages.innerHTML = '';
+            if (list.length === 0) {
+                chatMessages.innerHTML = '<div style="color:#a1a1aa; text-align:center; margin-top:20px;">Сообщений пока нет</div>';
+                return;
+            }
+
+            list.forEach(item => {
+                const msgDiv = document.createElement('div');
+                msgDiv.classList.add('msg-block');
+                
+                if (item.name === myName) {
+                    msgDiv.classList.add('my-msg');
+                }
+
+                msgDiv.innerHTML = `
+                    <div class="msg-meta">
+                        <span>${cleanHTML(item.name)}</span>
+                        <span>${cleanHTML(item.timestamp)}</span>
+                    </div>
+                    <div class="msg-text">${cleanHTML(item.message)}</div>
+                `;
+                chatMessages.appendChild(msgDiv);
+            });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (err) {
+            console.error("Ошибка при получении данных:", err);
+        }
+    }
+
+    // Обработка отправки формы
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = messageInput.value.trim();
+        if (!text) return;
+
+        messageInput.value = '';
+
+        try {
+            const params = new URLSearchParams();
+            params.append('name', myName);
+            params.append('message', text);
+
+            await fetch(GOOGLE_URL, {
+                method: 'POST',
+                body: params,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+            
+            fetchMessages();
+        } catch (err) {
+            alert("Ошибка отправки. Попробуйте еще раз.");
+        }
+    });
+
+    // Первичный запуск и цикл обновления раз в 4 секунды
+    fetchMessages();
+    setInterval(fetchMessages, 4000);
+</script>
+
+</body>
+</html>
