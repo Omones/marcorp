@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ОртоПилот — Медицинский центр в Кемерово</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white: #FFFFFF;
+    --bg-light: #F7F8F9;
+    --orange: #E89A4E;
+    --orange-hover: #D4842E;
+    --orange-light: #FDF4EC;
+    --black: #111111;
+    --text-main: #1A1A1A;
+    --text-muted: #666666;
+
+    --line: #E2E4E8;
+    
+    --font-main: 'Manrope', system-ui, -apple-system, sans-serif;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --shadow-sm: 0 4px 12px rgba(0,0,0,0.03);
+    --shadow-md: 0 12px 32px rgba(0,0,0,0.06);
+    --shadow-lg: 0 24px 64px rgba(0,0,0,0.08);
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family: var(--font-main);
+    background: var(--bg-light);
+    color: var(--text-main);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+
+    overflow-x: hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  button{background:none;border:none;color:inherit;font-family:inherit;cursor:pointer}
+  
+  .container{max-width:1280px;margin:0 auto;padding:0 32px;position:relative;z-index:2}
+  section{padding:100px 0;position:relative}
+  h1,h2,h3{line-height:1.15;letter-spacing:-.02em;font-weight:800}
+  h1{font-size:clamp(2.8rem,5vw,4.5rem)}
+  h2{font-size:clamp(2rem,3.5vw,3rem);margin-bottom:16px}
+  .lead-text{font-size:1.15rem;color:var(--text-muted);max-width:600px}
+
+  /* ===== СТАТИЧНЫЙ ФОН ===== */
+  .bg-wrapper{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--bg-light)}
+  .bg-blob{
+    position:absolute;border-radius:50%;filter:blur(100px);opacity:0.6;
+  }
+  .blob-1{width:700px;height:700px;background:var(--orange-light);top:-200px;left:-100px}
+
+  .blob-2{width:600px;height:600px;background:#E8F4F8;bottom:-100px;right:-100px}
+
+  .bg-grid{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+    background-size:100px 100px;
+    mask-image:radial-gradient(circle at 50% 50%, black 20%, transparent 70%);
+    -webkit-mask-image:radial-gradient(circle at 50% 50%, black 20%, transparent 70%);
+  }
+
+  /* ===== ХЕДЕР ===== */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    transition:all .4s var(--ease);padding:20px 0;
+    background:rgba(247,248,249,.8);backdrop-filter:blur(20px);
+    border-bottom:1px solid transparent;
+  }
+
+  header.scrolled{
+    background:rgba(247,248,249,.95);
+    border-bottom-color:var(--line);padding:12px 0;
+    box-shadow:var(--shadow-sm);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between}
+  
+  .logo-link{display:flex;align-items:center;}
+  .logo-img{height:44px;width:auto;display:block}
+  
+  .nav-links{display:flex;gap:32px;font-size:.95rem;font-weight:600;align-items:center}
+  .nav-links a{transition:color .3s;color:var(--text-muted)}
+  .nav-links a:hover{color:var(--orange)}
+  
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:14px 28px;font-weight:700;font-size:.95rem;
+    transition:all .3s var(--ease);border-radius:var(--radius-sm);
+    border:2px solid transparent;
+
+  }
+  .btn-primary{background:var(--orange);color:var(--white);box-shadow:0 8px 24px rgba(232,154,78,.3)}
+  .btn-primary:hover{background:var(--orange-hover);transform:translateY(-2px);box-shadow:0 12px 32px rgba(232,154,78,.4)}
+  .btn-outline{border-color:var(--line);color:var(--text-main);background:var(--white)}
+  .btn-outline:hover{border-color:var(--black);background:var(--black);color:var(--white)}
+
+  /* ===== БЛОК ПРИВЕТСТВИЯ ===== */
+  .welcome-section {
+    padding-top: 140px;
+    padding-bottom: 20px;
+  }
+  .welcome-card {
+    background: var(--white);
+    border-radius: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--line);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+  }
+  .welcome-main-content {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 40px;
+    padding: 60px 60px 40px 60px;
+    align-items: flex-start;
+  }
+  .welcome-doctor-photo {
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    object-fit: cover;
+  }
+  .welcome-text-side {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .welcome-section-tag {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 20px;
+  }
+  .welcome-notice {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    margin-bottom: 30px;
+    line-height: 1.5;
+  }
+  .welcome-quote {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-main);
+    border-left: none;
+
+    padding-left: 0;
+    margin-bottom: 35px;
+    line-height: 1.6;
+  }
+  .welcome-doctor-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .doctor-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .doctor-signature-icon {
+    font-size: 2rem;
+
+    opacity: 0.3;
+  }
+  .doctor-name-title h3 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--black);
+  }
+  .doctor-name-title p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .welcome-phone-btn {
+    background: var(--orange);
+    color: var(--white);
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 14px rgba(232,154,78,0.25);
+
+    transition: all 0.3s;
+  }
+  .welcome-phone-btn:hover {
+    background: var(--orange-hover);
+    transform: translateY(-2px);
+  }
+  
+  /* Панель статистики */
+  .welcome-stats-bar {
+    display: grid;
+    grid-template-columns: 280px 1fr 1fr 1fr;
+    border-top: 1px solid var(--line);
+    background: var(--white);
+  }
+  .stat-box {
+    padding: 30px 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    border-right: 1px solid var(--line);
+  }
+  .stat-box:last-child {
+    border-right: none;
+  }
+  .stat-box.highlighted {
+    background: #CE7B40;
+    color: var(--white);
+    border-right: none;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding-left: 50px;
+  }
+  .stat-box.highlighted h2 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    margin-bottom: 0;
+    line-height: 1;
+
+  }
+  .stat-box.highlighted p {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.9;
+    font-weight: 700;
+  }
+  .stat-icon {
+    font-size: 2rem;
+    color: var(--orange);
+  }
+  .stat-info h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--black);
+    line-height: 1.1;
+  }
+  .stat-info p {
+
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  /* ===== HERO ===== */
+  .hero{padding-top:60px;padding-bottom:80px}
+  .hero-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:60px;align-items:center}
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 16px;background:var(--white);color:var(--orange);
+    font-size:.85rem;font-weight:700;margin-bottom:32px;
+    border-radius:100px;box-shadow:var(--shadow-sm);
+  }
+  .hero-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--orange);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,154,78,.4)}70%{box-shadow:0 0 0 10px rgba(232,154,78,0)}100%{box-shadow:0 0 0 0 rgba(232,154,78,0)}}
+  
+  .hero h1 span{color:var(--orange)}
+  .hero p.lead{font-size:1.2rem;color:var(--text-muted);margin:24px 0 40px;max-width:500px}
+  .hero-actions{display:flex;gap:16px;flex-wrap:wrap}
+
+  
+  .hero-visual{
+    background:var(--white);padding:48px;border-radius:var(--radius);
+    box-shadow:var(--shadow-lg);position:relative;display:flex;flex-direction:column;gap:32px;
+  }
+  .hero-visual::before{
+    content:'';position:absolute;inset:-1px;border-radius:var(--radius);padding:1px;
+    background:linear-gradient(135deg, rgba(232,154,78,0.5), transparent 50%);
+    -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
+  }
+  .hero-feature{display:flex;gap:20px;align-items:flex-start}
+  .hero-feature-icon{
+    width:56px;height:56px;background:var(--orange-light);border-radius:var(--radius-sm);
+    display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex:none;
+  }
+  .hero-feature h3{font-size:1.2rem;margin-bottom:4px}
+  .hero-feature p{font-size:.9rem;color:var(--text-muted)}
+
+
+  /* ===== СЕКЦИИ ===== */
+  .sec-head{margin-bottom:60px;max-width:800px}
+  .sec-title{font-size:.9rem;font-weight:800;color:var(--orange);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px}
+  
+  /* Услуги */
+  .services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .service-card{
+    background:var(--white);padding:40px;border-radius:var(--radius);
+    box-shadow:var(--shadow-sm);transition:all .4s var(--ease);
+    border:1px solid transparent;
+  }
+  .service-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-md);border-color:var(--orange-light)}
+  .service-card h3{font-size:1.3rem;margin-bottom:24px;color:var(--black)}
+  .service-card ul{list-style:none}
+  .service-card li{position:relative;padding-left:24px;margin-bottom:12px;font-size:.95rem;color:var(--text-muted)}
+  .service-card li::before{
+    content:'';position:absolute;left:0;top:8px;width:8px;height:8px;
+    background:var(--orange-light);border:2px solid var(--orange);border-radius:50%;
+  }
+
+
+  /* ===== СЕКЦИЯ PRP-ТЕРАПИИ (НОВАЯ ИЗ ВЛОЖЕНИЯ) ===== */
+  .prp-section {
+    background: var(--white);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .prp-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+  .prp-visual-box {
+    background: var(--bg-light);
+    border-radius: var(--radius);
+    padding: 32px;
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+
+    gap: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .prp-steps-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--black);
+    margin-bottom: 8px;
+  }
+  .prp-step-item {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .prp-step-num {
+    width: 32px;
+    height: 32px;
+    background: var(--orange);
+    color: var(--white);
+
+    font-weight: 800;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    font-size: 0.9rem;
+  }
+  .prp-step-text h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 2px;
+  }
+  .prp-step-text p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .prp-info-box h3 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: var(--black);
+  }
+  .prp-main-desc {
+    font-size: 1.1rem;
+    color: var(--text-main);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .prp-highlight-text {
+    font-weight: 700;
+    color: var(--black);
+    border-left: 3px solid var(--orange);
+    padding-left: 16px;
+    margin-bottom: 24px;
+  }
+  .prp-goals-list {
+
+    list-style: none;
+    margin-bottom: 32px;
+  }
+  .prp-goals-list li {
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: var(--text-main);
+  }
+  .prp-goals-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--orange);
+    font-weight: 800;
+    font-size: 1.1rem;
+  }
+  .prp-footer-bar {
+
+    background: var(--orange-light);
+    border-radius: var(--radius-sm);
+    padding: 24px;
+    border: 1px solid rgba(232,154,78,0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .prp-price-tag {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--orange);
+  }
+  .prp-price-tag span {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 400;
+
+    display: block;
+  }
+
+  /* Клеточные технологии (SVF) */
+  .tech-grid{display:grid;grid-template-columns:1fr;gap:32px}
+  .tech-card{
+    background:var(--white);border-radius:var(--radius);padding:48px;position:relative;
+    box-shadow:var(--shadow-md);overflow:hidden;
+  }
+  .tech-card::after{
+    content:'';position:absolute;top:0;right:0;width:200px;height:200px;
+    background:radial-gradient(circle, var(--orange-light) 0%, transparent 70%);
+    opacity:0.5;transform:translate(30%, -30%);border-radius:50%;
+  }
+  .tech-card h3{font-size:1.6rem;margin-bottom:16px;position:relative;z-index:1}
+  .tech-price{
+    font-size:2.5rem;font-weight:800;color:var(--orange);
+    margin:32px 0;padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    position:relative;z-index:1;
+
+  }
+  .tech-price span{font-size:1rem;color:var(--text-muted);font-weight:600}
+  .tech-grid .tech-card ul{list-style:none;margin-top:24px;position:relative;z-index:1}
+  .tech-grid .tech-card ul li{margin-bottom:12px;font-size:.95rem;display:flex;gap:12px;color:var(--text-main)}
+  .tech-grid .tech-card ul li::before{content:'✓';color:var(--orange);font-weight:bold}
+
+  /* Прайс-лист */
+  .price-header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .price-tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .price-tab{
+    padding:12px 24px;font-size:.9rem;font-weight:700;
+    color:var(--text-muted);background:var(--white);border:1px solid var(--line);
+
+    border-radius:100px;transition:all .3s;
+  }
+  .price-tab.active{background:var(--black);color:var(--white);border-color:var(--black)}
+  .price-tab:hover:not(.active){border-color:var(--orange);color:var(--orange)}
+  
+  .price-content{display:none;animation:fadeIn .4s ease}
+  .price-content.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  
+  .price-table{width:100%;border-collapse:separate;border-spacing:0;font-size:.95rem;background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .price-table th{text-align:left;padding:20px 24px;background:var(--bg-light);border-bottom:1px solid var(--line);font-size:.85rem;color:var(--text-muted);font-weight:700}
+  .price-table td{padding:20px 24px;border-bottom:1px solid var(--line);color:var(--text-muted)}
+  .price-table tr:last-child td{border-bottom:none}
+  .price-table tr:hover td{background:#FAFBFC;color:var(--black)}
+  .price-table td:last-child{text-align:right;font-weight:800;color:var(--black);white-space:nowrap}
+  
+  .price-category{background:var(--white);color:var(--orange);font-weight:800;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em}
+  .price-category td{padding:16px 24px;background:var(--white);color:var(--orange)}
+
+
+  /* Блок "Специалисты" */
+  .team-link-card{
+    background:var(--white);border-radius:var(--radius);padding:48px;
+    display:flex;align-items:center;justify-content:space-between;gap:40px;
+    box-shadow:var(--shadow-md);border:1px solid var(--line);
+    transition:all .3s var(--ease);cursor:pointer;
+  }
+  .team-link-card:hover{border-color:var(--orange);transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+  .team-content{display:flex;align-items:center;gap:24px}
+  .team-icon{
+    width:72px;height:72px;background:var(--orange-light);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:2rem;flex:none;
+  }
+  .team-content h3{font-size:1.5rem;margin-bottom:8px}
+  .team-content p{color:var(--text-muted);font-size:1rem;max-width:500px}
+  .team-link-card .btn{flex:none}
+
+  /* Раздел сертификации */
+  .certification-section {
+
+    background: var(--bg-light);
+    border-top: 1px solid var(--line);
+    padding: 80px 0;
+  }
+  .cert-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: nowrap;
+  }
+  .cert-title-block {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+    min-width: 280px;
+  }
+  .cert-title-text {
+    font-size: 1.4rem;
+
+    font-weight: 500;
+    color: var(--text-muted);
+    font-family: var(--font-main);
+  }
+  .cert-accent-line {
+    height: 1px;
+    background: var(--orange);
+    flex-grow: 1;
+    opacity: 0.7;
+  }
+  .cert-images-grid {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    overflow-x: auto;
+    padding: 10px 0;
+    flex-grow: 1;
+  }
+  .cert-item-wrapper {
+
+    background: var(--white);
+    border: 1px solid #D8C3A5;
+    padding: 6px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.3s var(--ease), box-shadow 0.3s;
+    flex-shrink: 0;
+    width: 110px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cert-item-wrapper:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(232,154,78,0.15);
+    border-color: var(--orange);
+  }
+  .cert-thumb-img {
+
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #fafafa;
+  }
+
+  /* Лайтбокс картинок */
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease);
+
+  }
+  .lightbox-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .lightbox-box {
+    max-width: 90%;
+    max-height: 85vh;
+    position: relative;
+    transform: scale(0.95);
+    transition: transform 0.3s var(--ease);
+    background: var(--white);
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+  }
+  .lightbox-overlay.active .lightbox-box {
+    transform: scale(1);
+  }
+
+  .lightbox-img {
+    max-width: 100%;
+    max-height: 80vh;
+    display: block;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: -45px;
+    right: 0;
+    color: var(--white);
+    font-size: 2.5rem;
+    font-weight: 300;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .lightbox-close:hover {
+    color: var(--orange);
+
+  }
+  .lightbox-caption {
+    text-align: center;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-top: 10px;
+    font-family: var(--font-main);
+  }
+
+  /* Карта 2ГИС */
+  .map-section {
+    background: var(--white);
+    border-top: 1px solid var(--line);
+  }
+  .map-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 60px;
+
+    align-items: center;
+  }
+  .map-info h2 {
+    margin-bottom: 16px;
+  }
+  .map-info p {
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    font-size: 1.05rem;
+  }
+  .contact-list {
+    list-style: none;
+  }
+  .contact-list li {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    align-items: flex-start;
+  }
+
+  .contact-list li .ci {
+    color: var(--orange);
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-top: 2px;
+  }
+  .contact-list li div strong {
+    display: block;
+    font-size: .9rem;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+  .contact-list li div span {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--black);
+  }
+  .map-container-box {
+    border-radius: 24px;
+
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--line);
+    background: var(--bg-light);
+  }
+
+  /* Подвал */
+  footer{background:var(--white);border-top:1px solid var(--line);padding:80px 0 40px;position:relative;z-index:2}
+  .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;margin-bottom:64px}
+  footer h4{font-size:1rem;color:var(--black);font-weight:800;margin-bottom:24px}
+  footer ul{list-style:none}
+  footer li{margin-bottom:12px;font-size:.95rem;color:var(--text-muted)}
+  footer a{transition:color .3s}
+  footer a:hover{color:var(--orange)}
+  
+  .footer-legal{
+    border-top:1px solid var(--line);padding-top:32px;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;
+    font-size:.85rem;color:var(--text-muted);
+
+  }
+  .legal-info{display:flex;flex-direction:column;gap:8px}
+  .legal-info span{display:flex;gap:8px}
+  .legal-info strong{color:var(--black);font-weight:700}
+
+  /* Модалка PDF */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(17,17,17,.6);backdrop-filter:blur(8px);z-index:1000;
+    display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;
+  }
+  .modal-overlay.active{opacity:1;pointer-events:all}
+  .modal-content{
+    background:var(--white);border-radius:var(--radius);width:90%;max-width:1100px;
+    display:flex;flex-direction:column;transform:translateY(20px);transition:transform .3s;
+    box-shadow:0 24px 64px rgba(0,0,0,0.2);overflow:hidden;
+  }
+  .modal-overlay.active .modal-content{transform:translateY(0)}
+  .modal-header{padding:24px 32px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:var(--white)}
+  .modal-title{font-size:1.25rem;font-weight:800;color:var(--black)}
+
+  .modal-close{font-size:2rem;line-height:1;color:var(--text-muted);transition:color .2s}
+  .modal-close:hover{color:var(--orange)}
+  .modal-body{padding:24px;background:var(--bg-light);height:70vh;display:flex;gap:24px}
+  
+  .pdf-preview{
+    flex:0 0 320px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--white);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;
+    box-shadow:var(--shadow-sm);overflow:hidden;
+  }
+  .pdf-preview object{width:100%;height:100%;pointer-events:none;border:none;}
+  .pdf-full{flex-grow:1;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--white);position:relative;overflow:hidden}
+  .pdf-full embed{width:100%;height:100%;border:none;}
+  .pdf-full .fallback{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+  .pdf-full .fallback p{margin-bottom:20px;color:var(--text-muted)}
+  .modal-footer{padding:20px 32px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:var(--white)}
+
+  /* Адаптив */
+  @media(max-width:1140px){
+    .welcome-main-content { grid-template-columns: 1fr; }
+
+    .welcome-stats-bar { grid-template-columns: 1fr 1fr; }
+    .stat-box { border-bottom: 1px solid var(--line); }
+    .stat-box.highlighted { padding: 30px 40px; align-items: flex-start; }
+    .cert-row { flex-direction: column; align-items: flex-start; gap: 20px;}
+    .cert-title-block { width: 100%; }
+    .prp-container { grid-template-columns: 1fr; gap: 40px; }
+  }
+  @media(max-width:1024px){
+    .hero-grid,.tech-grid,.map-wrapper{grid-template-columns:1fr}
+    .hero-visual{max-width:600px;margin:0 auto;width:100%}
+    .services-grid{grid-template-columns:1fr 1fr}
+    .team-link-card{flex-direction:column;text-align:center}
+    .team-content{flex-direction:column}
+  }
+  @media(max-width:768px){
+    .container{padding:0 20px}
+    .nav-links{display:none}
+    .services-grid{grid-template-columns:1fr}
+    .hero h1{font-size:2.5rem}
+
+    .hero-visual{padding:24px}
+    .tech-card{padding:24px}
+    .price-table th, .price-table td{padding:16px}
+    .modal-body{flex-direction:column;height:80vh;padding:16px;gap:16px}
+    .pdf-preview{flex:0 0 250px}
+    .footer-legal{flex-direction:column}
+    .welcome-main-content { padding: 30px 20px; }
+    .welcome-stats-bar { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<!-- СТАТИЧНЫЙ ЖИВОЙ ФОН -->
+<div class="bg-wrapper">
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-grid"></div>
+</div>
+
+
+<!-- ШАПКА -->
+<header id="header">
+  <div class="container nav">
+    <a href="#" class="logo-link">
+      <img src="images/logo.png" alt="ОртоПилот" class="logo-img">
+    </a>
+    <nav class="nav-links">
+      <a href="#services">Услуги</a>
+      <a href="#prp">PRP-терапия</a>
+      <a href="#tech">Клеточные технологии</a>
+      <a href="#price">Стоимость</a>
+      <a href="#doctors">Врачи</a>
+      <a href="#docs">Сертификация</a>
+      <a href="#map" class="btn btn-primary">Контакты</a>
+    </nav>
+  </div>
+</header>
+<!-- ПРИВЕТСТВЕННЫЙ БЛОК -->
+
+<section class="welcome-section">
+  <div class="container">
+    <div class="welcome-card">
+      <div class="welcome-main-content">
+        <div style="position: relative; width: 100%;">
+          <img src="images/komkov.png" alt="Андрей Комков — Главный врач МЦ ОртоПилот" class="welcome-doctor-photo">
+        </div>
+        
+        <div class="welcome-text-side">
+          <div class="welcome-section-tag">Лечение</div>
+          <p class="welcome-notice">Помните, что профилактика – это лучшее лечение. Не откладывайте визит к врачу, если что-то вас беспокоит. Вовремя поставленный диагноз и своевременное лечение могут спасти вам жизнь.</p>
+          
+          <div class="welcome-quote">
+            “Как хирург, я ежедневно сталкиваюсь с последствиями пренебрежения к своему здоровью. Я вижу, как болезни лишают людей радости и заставляют страдать. Именно поэтому я призываю вас: заботьтесь о себе! Регулярно проходите обследования, прислушивайтесь к своему телу, ведите здоровый образ жизни.”
+          </div>
+          
+          <div class="welcome-doctor-info">
+            <div class="doctor-meta">
+              <div class="doctor-signature-icon">〰️</div>
+
+              <div class="doctor-name-title">
+                <h3>Андрей Комков</h3>
+                <p>Директор МЦ "Ортопилот", к.м.н. врач-травматолог-ортопед</p>
+              </div>
+            </div>
+            <a href="tel:+73842901913" class="welcome-phone-btn">+7 (3842) 901-913</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="welcome-stats-bar">
+        <div class="stat-box highlighted">
+          <h2>38 лет</h2>
+          <p>стаж</p>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-info">
+            <h3>5000+</h3>
+
+            <p>успешных операций</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">📰</div>
+          <div class="stat-info">
+            <h3>10+</h3>
+            <p>научных публикаций</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">👤</div>
+          <div class="stat-info">
+            <h3>1000+</h3>
+            <p>пациентов ежегодно</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+<!-- ГЛАВНЫЙ ЭКРАН -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <div class="hero-badge">Медицинский центр в Кемерово</div>
+      <h1>Здоровье стоп.<br><span>Научный</span> подход.</h1>
+      <p class="lead">Диагностика, лечение, индивидуальное ортезирование и клеточные технологии. Врачи высшей категории, собственные научные разработки.</p>
+      <div class="hero-actions">
+        <a href="#map" class="btn btn-primary">Связаться с центром</a>
+        <a href="#docs" class="btn btn-outline">Посмотреть лицензии</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-feature">
+        <div class="hero-feature-icon">🏥</div>
+        <div>
+
+          <h3>Врачи высшей категории</h3>
+          <p>Травматологи-ортопеды, неврологи, терапевты с многолетним опытом и научными степенями.</p>
+        </div>
+      </div>
+      <div class="hero-feature">
+        <div class="hero-feature-icon">🔬</div>
+        <div>
+          <h3>Собственные биотехнологии</h3>
+          <p>PRP и SVF-терапия. Инновационные методы лечения суставов без операции.</p>
+        </div>
+      </div>
+      <div class="hero-feature">
+        <div class="hero-feature-icon">📋</div>
+        <div>
+          <h3>Полный цикл</h3>
+          <p>От первичной диагностики до хирургического лечения и реабилитации.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+<!-- УСЛУГИ -->
+<section id="services">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-title">Направления работы</div>
+      <h2>Медицинский центр <br>полного цикла</h2>
+    </div>
+    <div class="services-grid">
+      <div class="service-card">
+        <h3>Травматология и ортопедия</h3>
+        <ul>
+          <li>Консультативно-диагностический приём (в т.ч. детский)</li>
+          <li>PRP-терапия (плазма, обогащённая тромбоцитами)</li>
+          <li>SVF-терапия (аутожир, стволовые клетки)</li>
+          <li>Остеосинтез предизогнутыми имплантатами</li>
+          <li>Реконструкция деформаций стопы и кисти</li>
+
+          <li>Артро-медуллярное шунтирование суставов</li>
+          <li>Лечебные блокады</li>
+        </ul>
+      </div>
+      <div class="service-card">
+        <h3>Неврология</h3>
+        <ul>
+          <li>Консультативный приём и диагностика</li>
+          <li>Ботулинотерапия (спазмы, мигрени)</li>
+          <li>Лечение последствий инсульта</li>
+          <li>Ударно-волновая терапия</li>
+          <li>Индивидуальное ортезирование Formotics</li>
+        </ul>
+      </div>
+      <div class="service-card">
+        <h3>Терапия и Эндокринологии</h3>
+        <ul>
+          <li>Диагностика сердечно-сосудистой системы</li>
+          <li>Заболевания ЖКТ и мочевыделительной системы</li>
+
+          <li>Экспертиза нетрудоспособности</li>
+          <li>Диабетология</li>
+          <li>Тиреодология (щитовидная железа)</li>
+        </ul>
+      </div>
+      <div class="service-card">
+        <h3>Ревматология</h3>
+        <ul>
+          <li>Приём пациентов с ревматическими болезнями</li>
+          <li>Лечение васкулитов</li>
+          <li>Диффузные болезни соединительной ткани</li>
+          <li>Внутрисуставные блокады</li>
+        </ul>
+      </div>
+      <div class="service-card">
+        <h3>Психотерапия</h3>
+        <ul>
+          <li>Клиническая гипнотерапия</li>
+          <li>Когнитивно-поведенческая терапия</li>
+
+          <li>Расстройства пищевого поведения</li>
+          <li>Кризисная психотерапия</li>
+          <li>Работа с острой травмой (ДПДГ)</li>
+        </ul>
+      </div>
+      <div class="service-card">
+        <h3>Хирургия</h3>
+        <ul>
+          <li>Оперативное лечение контрактуры Дюпюитрена</li>
+          <li>Иссечение гигром и ганглиев</li>
+          <li>Рассечение карпальной связки</li>
+          <li>Удаление новообразований кожи</li>
+          <li>Операции на вросшем ногте</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- РАЗДЕЛ PRP-ТЕРАПИИ (НОВЫЙ, НА ОСНОВЕ МАТЕРИАЛОВ ВЛОЖЕНИЯ) -->
+<section id="prp" class="prp-section">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-title">Биотехнологии восстановления</div>
+      <h2>PRP-терапия суставов и тканей</h2>
+    </div>
+    
+    <div class="prp-container">
+      
+      <!-- Описание сути и принципа действия -->
+      <div class="prp-info-box">
+        <h3>Что такое PRP-терапия?</h3>
+        <p class="prp-main-desc">
+          <strong>PRP-терапия (Platelet-Rich Plasma)</strong> — это современный инновационный метод лечения суставов и тканей с помощью собственной плазмы крови пациента, обогащённой тромбоцитами. В отличие от стандартных медикаментов, маскирующих симптомы, PRP запускает естественные клеточные процессы регенерации.
+        </p>
+        <div class="prp-highlight-text">
+          Процедура малоинвазивна, отличается минимальным риском осложнений, коротким периодом реабилитации и позволяет пациентам с артрозами 1–3 степени сохранить собственные суставы, отсрочив или полностью исключив операцию эндопротезирования.
+        </div>
+
+        
+        <h4 style="margin-bottom:12px; font-weight:800;">Цели лечебного использования плазмы:</h4>
+        <ul class="prp-goals-list">
+          <li>Восстановление оптимальной вязкости синовиальной жидкости;</li>
+          <li>Значительное улучшение биомеханики и амплитуды движений в суставе;</li>
+          <li>Быстрое купирование выраженного болевого синдрома;</li>
+          <li>Снижение потребности в приеме гормонов (кортикостероидов) и НПВС;</li>
+          <li>Улучшение качества жизни при прогрессирующем остеоартрозе.</li>
+        </ul>
+        
+        <div class="prp-footer-bar">
+          <div class="prp-price-tag">5 650 ₽ <span>за 1 инъекцию (все включено)</span></div>
+          <a href="docs/cells.pdf" class="btn btn-outline" style="padding:10px 20px; font-size:0.85rem;" target="_blank">Скачать презентацию СВФ/PRP</a>
+        </div>
+      </div>
+
+      <!-- Подготовка и этапы процедуры -->
+      <div class="prp-visual-box">
+        <div>
+
+          <div class="prp-steps-title">📋 4 этапа процедуры (30 минут):</div>
+          <div style="display:flex; flex-direction:column; gap:16px; margin-top:16px;">
+            <div class="prp-step-item">
+              <div class="prp-step-num">1</div>
+              <div class="prp-step-text">
+                <h4>Забор крови</h4>
+                <p>Производится взятие 15–60 мл венозной крови пациента в стерильную пробирку.</p>
+              </div>
+            </div>
+            <div class="prp-step-item">
+              <div class="prp-step-num">2</div>
+              <div class="prp-step-text">
+                <h4>Центрифугирование</h4>
+                <p>Пробирка помещается в центрифугу для отделения плазмы от эритроцитов и лейкоцитов.</p>
+              </div>
+            </div>
+            <div class="prp-step-item">
+              <div class="prp-step-num">3</div>
+              <div class="prp-step-text">
+
+                <h4>Концентрация PRP</h4>
+                <p>Извлечение 3–6 мл очищенной аутоплазмы, максимально богатой живыми тромбоцитами.</p>
+              </div>
+            </div>
+            <div class="prp-step-item">
+              <div class="prp-step-num">4</div>
+              <div class="prp-step-text">
+                <h4>Введение препарата</h4>
+                <p>Врач осуществляет точечный укол (инъекцию) полученного состава в пораженную область сустава.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--line); padding-top: 20px;">
+          <div class="prp-steps-title">⚠️ Подготовка к процедуре:</div>
+          <ul style="list-style:none; padding-left:0; margin-top:12px; font-size:0.9rem; color:var(--text-main); display:flex; flex-direction:column; gap:8px;">
+            <li>🔹 Комплексный первичный осмотр травматолога-ортопеда;</li>
+            <li>🔹 Сдача общего анализа крови и коагулограммы (оценка свертываемости);</li>
+
+            <li>🔹 Временный отказ от антикоагулянтов (по согласованию с лечащим врачом);</li>
+            <li>🔹 Отсутствие острых вирусных или бактериальных инфекционных процессов;</li>
+            <li>🔹 Свободная одежда, легко открывающая целевую область введения плазмы.</li>
+          </ul>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:16px;">
+            *Курс лечения обычно включает от 3 до 5 последовательных процедур, выполняемых с интервалом в 2–3 недели. Результат проявляется постепенно по мере регенерации тканей.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+<!-- КЛЕТОЧНЫЕ ТЕХНОЛОГИИ (SVF) -->
+<section id="tech" style="background:var(--bg-light)">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-title">Биотехнологии жировой ткани</div>
+
+      <h2>SVF-терапия (Стромально-васкулярная фракция)</h2>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <h3>SVF-терапия (Система LIPO-STEM DUO)</h3>
+        <p style="color:var(--text-muted);margin-top:12px;font-size:1.05rem">Использование аутологичных мезенхимальных стволовых клеток из собственной жировой ткани бедер, ягодиц или живота для глубокого восстановления хрящевой оболочки суставов.</p>
+        <div class="tech-price">89 500 ₽ <span>/ комплексная процедура</span></div>
+        <p style="font-size:.95rem;color:var(--text-muted)">Включает местную анестезию раствором Кляйна (1000 мл), забор липоаспирата, микрофильтрацию в замкнутом цикле без центрифугирования, перевязки и осмотр через 48 часов. Стабильный терапевтический эффект гарантирован на срок от 3 до 5 лет.</p>
+        <ul>
+          <li>Эффективно при дегенеративных артрозах 1–3 степени;</li>
+          <li>Снижает болевые проявления и улучшает трофическую функцию;</li>
+          <li>Проводится амбулаторно в течение 120 минут с применением итальянских наборов.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ПРАЙС-ЛИСТ -->
+
+<section id="price">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-title">Стоимость услуг</div>
+      <h2>Прайс-лист клиники</h2>
+      <p style="color:var(--text-muted);margin-top:12px">Цены действительны на ноябрь 2025 г. Вы можете скачать официальный документ с полным перечнем тарифов.</p>
+    </div>
+    
+    <div class="price-header-actions">
+      <div class="price-tabs">
+        <button class="price-tab active" data-target="tab-consult">Консультации</button>
+        <button class="price-tab" data-target="tab-blocks">Блокады и инъекции</button>
+      </div>
+      <!-- Кнопка скачивания прайса -->
+      <a href="docs/price.pdf" class="btn btn-primary" download style="gap:10px;">
+        <span>📥 Скачать полный прайс (PDF)</span>
+      </a>
+    </div>
+
+
+    <div id="tab-consult" class="price-content active">
+      <table class="price-table">
+        <thead><tr><th>Код</th><th>Наименование услуги</th><th>Цена (₽)</th></tr></thead>
+        <tbody>
+          <tr><td colspan="3" class="price-category">Травматология и ортопедия</td></tr>
+          <tr><td>A0333</td><td>Приём врача-травматолога-ортопеда к.м.н. первичный</td><td>3 200</td></tr>
+          <tr><td>A0334</td><td>Приём врача-травматолога-ортопеда к.м.н. повторный</td><td>2 800</td></tr>
+          <tr><td>A0333</td><td>Приём врача-травматолога-ортопеда первичный</td><td>2 500</td></tr>
+          <tr><td>A0334</td><td>Приём врача-травматолога-ортопеда повторный</td><td>2 200</td></tr>
+          <tr><td>A0333</td><td>Врач-травматолог-ортопед, посещение на дому</td><td>6 000</td></tr>
+          
+          <tr><td colspan="3" class="price-category">Неврология</td></tr>
+          <tr><td>A0220</td><td>Приём врача-невролога первичный</td><td>2 500</td></tr>
+          <tr><td>A0222</td><td>Приём врача-невролога повторный</td><td>2 200</td></tr>
+          <tr><td>A0220</td><td>Приём врача-невролога, посещение на дому</td><td>5 000</td></tr>
+          
+          <tr><td colspan="3" class="price-category">Терапия</td></tr>
+          <tr><td>A0280</td><td>Приём врача-терапевта первичный</td><td>2 500</td></tr>
+          <tr><td>A0290</td><td>Приём врача-терапевта к.м.н. первичный</td><td>3 000</td></tr>
+
+          <tr><td>A0285</td><td>Оформление медзаключения (бассейн, спорт, выезд)</td><td>2 200</td></tr>
+          
+          <tr><td colspan="3" class="price-category">Психотерапия</td></tr>
+          <tr><td>A0339</td><td>Консультация психотерапевта к.м.н. (взрослым и детям)</td><td>5 000</td></tr>
+          <tr><td>A0340</td><td>Консультация психотерапевта к.м.н. (семейная пара)</td><td>6 000</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="tab-blocks" class="price-content">
+      <table class="price-table">
+        <thead><tr><th>Код</th><th>Наименование услуги</th><th>Цена (₽)</th></tr></thead>
+        <tbody>
+          <tr><td>A0221</td><td>Внутримышечное введение препаратов (1 зона, без стоимости препарата)</td><td>950</td></tr>
+          <tr><td>A0241</td><td>Внутрисуставное введение препаратов (включая стоимость препарата)</td><td>3 000</td></tr>
+          <tr><td>A0241</td><td>Внутрисуставное введение протезов синовиальной жидкости (Гиалган 1,8% - 2,0 мл)</td><td>9 860</td></tr>
+          <tr><td>A0241</td><td>Внутрисуставное введение протезов синовиальной жидкости (Гиалган 2,2% - 2,0 мл)</td><td>18 200</td></tr>
+          <tr><td>A0242</td><td>Внутрисуставное введение PRP (коленный/голеностопный сустав)</td><td>4 000</td></tr>
+          <tr><td>A0243</td><td>Внутрисуставное введение PRP (плечевой сустав)</td><td>4 300</td></tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<!-- БЛОК СПЕЦИАЛИСТОВ -->
+<section id="doctors" style="background:var(--white);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-title">Наша команда</div>
+      <h2>Квалифицированные специалисты</h2>
+    </div>
+    
+    <div class="team-link-card" onclick="openModal('docs/presentation.pdf', 'Презентация: Специалисты центра')">
+      <div class="team-content">
+        <div class="team-icon">👨‍⚕️</div>
+        <div>
+          <h3>Познакомьтесь с нашими врачами</h3>
+
+          <p>В центре работают травматологи-ортопеды, неврологи, терапевты и психотерапевты с высшими категориями и научными степенями. Нажмите, чтобы открыть подробную презентацию.</p>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="event.stopPropagation(); openModal('docs/presentation.pdf', 'Презентация: Специалисты центра')">Открыть презентацию</button>
+    </div>
+  </div>
+</section>
+<!-- РАЗДЕЛ СЕРТИФИКАЦИИ -->
+<section id="docs" class="certification-section">
+  <div class="container">
+    <div class="cert-row">
+      
+      <div class="cert-title-block">
+        <span class="cert-title-text">Сертификация</span>
+        <div class="cert-accent-line"></div>
+      </div>
+      
+      <div class="cert-images-grid">
+
+        <div class="cert-item-wrapper" onclick="openLightbox('certs/license.jpg', 'Лицензия')">
+          <img src="certs/license.jpg" alt="Лицензия" class="cert-thumb-img">
+        </div>
+        
+        <div class="cert-item-wrapper" onclick="openLightbox('certs/vipiska.jpg', 'Выписка из реестра')">
+          <img src="certs/vipiska.jpg" alt="Выписка из реестра" class="cert-thumb-img">
+        </div>
+        
+        <div class="cert-item-wrapper" onclick="openLightbox('certs/uvedom.jpg', 'Уведомление Минздрава Кузбасса о предоставлении лицензии')">
+          <img src="certs/uvedom.jpg" alt="Уведомление Минздрава" class="cert-thumb-img">
+        </div>
+        
+        <div class="cert-item-wrapper" onclick="openLightbox('certs/sez1.jpg', 'СЭЗ')">
+          <img src="certs/sez1.jpg" alt="СЭЗ" class="cert-thumb-img">
+        </div>
+		
+		<div class="cert-item-wrapper" onclick="openLightbox('certs/sez2.jpg', 'Приложение к СЭЗ')">
+          <img src="certs/sez2.jpg" alt="Приложение к СЭЗ" class="cert-thumb-img">
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- БЛОК С КАРТОЙ 2ГИС -->
+<section id="map" class="map-section">
+  <div class="container map-wrapper">
+    <div class="map-info">
+      <div class="sec-title">Расположение</div>
+      <h2>Как нас найти</h2>
+      <p>Медицинский центр находится в удобной транспортной доступности. Используйте интерактивную карту для построения оптимального маршрута.</p>
+      
+      <ul class="contact-list">
+        <li>
+          <span class="ci">01</span>
+          <div>
+            <strong>Телефон</strong>
+            <span>8 (3842) 90-19-13</span>
+          </div>
+        </li>
+        <li>
+          <span class="ci">02</span>
+          <div>
+
+            <strong>Адрес</strong>
+            <span>Кемерово, пр. В.В. Михайлова, 3А к2</span>
+          </div>
+        </li>
+        <li>
+          <span class="ci">03</span>
+          <div>
+            <strong>Режим работы</strong>
+            <span>Пн–Пт 9:00–20:00 · Сб–Вс 9:00–15:00</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="map-container-box">
+      <iframe id="map_257938344" src="https://2gis.ru" width="100%" height="500px" frameborder="0" sandbox="allow-modals allow-forms allow-scripts allow-same-origin allow-popups allow-top-navigation-by-user-activation"><span data-mce-type="bookmark" style="display: inline-block; width: 0px; overflow: hidden; line-height: 0;" class="mce_SELRES_start">﻿</span><span data-mce-type="bookmark" style="display: inline-block; width: 0px; overflow: hidden; line-height: 0;" class="mce_SELRES_start">﻿</span></iframe>
+    </div>
+  </div>
+</section>
+
+
+<!-- ПОДВАЛ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="#" class="logo-link" style="margin-bottom:20px; display:inline-block;">
+          <img src="images/logo.png" alt="ОртоПилот" class="logo-img">
+        </a>
+        <p style="color:var(--text-muted);font-size:.95rem;max-width:300px">Медицинский центр в Кемерово. Ортопедия, биотехнологии, здоровье стоп.</p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <ul>
+          <li><a href="#services">Услуги</a></li>
+          <li><a href="#prp">PRP-терапия</a></li>
+          <li><a href="#tech">Технологии</a></li>
+          <li><a href="#price">Стоимость</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Контакты</h4>
+        <ul>
+          <li>8 (3842) 90-19-13</li>
+          <li>orthopilot.2025@yandex.ru</li>
+          <li>пр. В.В. Михайлова, 3А к2</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-legal">
+      <div class="legal-info">
+        <span><strong>ООО «МЦ ОРТОПИЛОТ»</strong></span>
+        <span>Лицензия: Л041-01161-42/02470710 от 18.06.2025</span>
+      </div>
+      <div class="legal-info">
+        <span>ИНН: 4205422931</span>
+        <span>ОГРН: 1244200008645</span>
+      </div>
+
+      <div class="legal-info" style="text-align:right">
+        <span>© 2026 ООО «МЦ ОРТОПИЛОТ»</span>
+        <span>Не является публичной офертой</span>
+      </div>
+    </div>
+  </div>
+</footer>
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ СТАНДАРТНЫХ PDF -->
+<div class="modal-overlay" id="pdfModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Название документа</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="pdf-preview" id="pdfPreview">
+        <object data="" type="application/pdf" style="width:100%;height:100%;border:none;">
+          <p style="color:var(--text-muted);font-size:.8rem">Превью недоступно</p>
+
+        </object>
+      </div>
+      <div class="pdf-full">
+        <embed id="pdfEmbed" src="" type="application/pdf" style="width:100%;height:100%;">
+        <div class="fallback">
+          <p>Ваш браузер не поддерживает встроенный просмотр PDF.</p>
+          <a href="#" id="pdfDownloadBtn" class="btn btn-outline" target="_blank">Открыть / Скачать PDF</a>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span style="font-size:.9rem;color:var(--text-muted)">Документ сформирован автоматически</span>
+      <a href="#" id="pdfDownloadBtn2" class="btn btn-primary" target="_blank" style="padding:10px 20px;font-size:.85rem">Скачать оригинал</a>
+    </div>
+  </div>
+</div>
+<!-- ЛАЙТБОКС ВСПЛЫВАЮЩЕГО СТАТИЧНОГО ИЗОБРАЖЕНИЯ СЕРТИФИКАТА -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
+
+  <div class="lightbox-box" onclick="event.stopPropagation()">
+    <span class="lightbox-close" onclick="closeLightbox()">×</span>
+    <img src="" alt="" class="lightbox-img" id="lightboxImg">
+    <div class="lightbox-caption" id="lightboxCaption">Описание документа</div>
+  </div>
+</div>
+
+<script>
+  // Шапка при скролле
+  const header = document.getElementById('header');
+  window.addEventListener('scroll', () => {
+    header.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // Модальное окно PDF
+  const modal = document.getElementById('pdfModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const pdfEmbed = document.getElementById('pdfEmbed');
+  const pdfPreview = document.getElementById('pdfPreview').querySelector('object');
+
+  const pdfDownloadBtn = document.getElementById('pdfDownloadBtn');
+  const pdfDownloadBtn2 = document.getElementById('pdfDownloadBtn2');
+
+  function openModal(fileUrl, title) {
+    modalTitle.textContent = title;
+    pdfPreview.data = fileUrl + '#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0';
+    pdfEmbed.src = fileUrl + '#toolbar=1&navpanes=0';
+    pdfDownloadBtn.href = fileUrl;
+    pdfDownloadBtn2.href = fileUrl;
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    setTimeout(() => {
+      pdfEmbed.src = '';
+
+      pdfPreview.data = '';
+    }, 300);
+  }
+
+  // Логика работы Лайтбокса картинок документов
+  const lightbox = document.getElementById('lightboxOverlay');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxCaption = document.getElementById('lightboxCaption');
+
+  function openLightbox(imgSrc, captionText) {
+    lightboxImg.src = imgSrc;
+    lightboxImg.alt = captionText;
+    lightboxCaption.textContent = captionText;
+    lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove('active');
+
+    document.body.style.overflow = '';
+    setTimeout(() => {
+      lightboxImg.src = '';
+    }, 300);
+  }
+
+  // Закрытие по кнопке Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      closeLightbox();
+    }
+  });
+
+  // Вкладки тарифов
+  const tabs = document.querySelectorAll('.price-tab');
+  const contents = document.querySelectorAll('.price-content');
+
+  tabs.forEach(tab => {
+
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      
+      tab.classList.add('active');
+      const target = document.getElementById(tab.dataset.target);
+      if (target) target.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
+
+
