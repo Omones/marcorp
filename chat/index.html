@@ -76,7 +76,7 @@
     <div class="auth-card">
         <h2>Вход в канал</h2>
         <p>Введите цифровой ключ авторизации, чтобы восстановить адрес макроса чата.</p>
-        <input type="text" id="digitsInput" placeholder="Например: 772812..." autocomplete="off">
+        <input type="text" id="digitsInput" placeholder="Например: 772812549" autocomplete="off">
         <button type="button" class="btn btn-main" style="width: 100%;" id="authBtn">Активировать</button>
     </div>
 </div>
@@ -116,8 +116,7 @@
 </div>
 
 <script>
-    // Шаблон ссылки БЕЗ цифр. Вместо цифр стоят метки {X}
-    const URL_TEMPLATE = "https://script.google.com/macros/s/AKfycbz{0}Ujv{1}a{2}iK{3}ZoPLsPdwFGEoO_qhGHvkwtGN{4}zmgHAeGCVfPyzjlfX{5}CeII{6}FkuO/exec";
+    // Точный посимвольный разбор шаблона
     let currentGoogleUrl = "";
 
     const authOverlay = document.getElementById('authOverlay');
@@ -206,7 +205,7 @@
     async function fetchMessages(isBackground = true) {
         try {
             const res = await fetch(currentGoogleUrl);
-            if (!res.ok) throw new Error("Ошибка сборки ссылки");
+            if (!res.ok) throw new Error("Неверный ответ от Google API");
             const list = await res.json();
             
             const uniqueUsers = new Set();
@@ -313,23 +312,23 @@
         } catch (err) { alert("Ошибка отправки."); }
     }
 
-    // Собираем оригинальную ссылку, подставляя цифры на нужные места
+    // Безошибочная посимвольная сборка токена
     function assembleUrlWithDigits(digitsStr) {
-        const d = digitsStr.trim().replace(/\D/g, ''); // оставляем только цифры
-        if (d.length < 9) return false; // Ожидаем цепочку цифр макроса (например, 772812549...)
+        const d = digitsStr.trim().replace(/\D/g, ''); // оставляем только чистые цифры
+        if (d.length < 9) return false; 
 
-        // Разбиваем строку цифр по индексам в шаблоне
-        // 7, 7, 2, 8, 1, 2, 5, 4, 9
-        let resultUrl = URL_TEMPLATE
-            .replace("{0}", d.substring(0, 1)) // 7
-            .replace("{1}", d.substring(1, 2)) // 7
-            .replace("{2}", d.substring(2, 3)) // 2
-            .replace("{3}", d.substring(3, 5)) // 81 (две цифры подряд между K и Z)
-            .replace("{4}", d.substring(5, 6)) // 2
-            .replace("{5}", d.substring(6, 7)) // 5
-            .replace("{6}", d.substring(7, 9)); // 49 (две последние цифры перед CeII)
+        // d[0]='7', d[1]='7', d[2]='2', d[3]='8', d[4]='1', d[5]='2', d[6]='5', d[7]='4', d[8]='9'
+        const t0 = "AKfycbz" + d[0];           // AKfycbz7
+        const t1 = "Ujv" + d[1];               // Ujv7
+        const t2 = "a" + d[2];                 // a2
+        const t3 = "iK" + d[3] + d[4];         // iK81
+        const t4 = "ZoPLsPdwFGEoO_qhGHvkwtGN" + d[5]; // ZoPLsPdwFGEoO_qhGHvkwtGN2
+        const t5 = "zmgHAeGCVfPyzjlfX" + d[6];  // zmgHAeGCVfPyzjlfX5
+        const t6 = "CeII" + d[7] + d[8] + "FkuO"; // CeII49FkuO
 
-        currentGoogleUrl = resultUrl;
+        const fullToken = t0 + t1 + t2 + t3 + t4 + t5 + t6;
+        currentGoogleUrl = "https://script.google.com/macros/s/" + fullToken + "/exec";
+        
         sessionStorage.setItem('chat_puzzle_digits', d);
         
         fetchMessages(false);
