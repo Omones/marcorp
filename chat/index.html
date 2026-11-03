@@ -269,8 +269,15 @@
             return;
         }
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { sampleRate: 11025, channelCount: 1, echoCancellation: true } 
+            });
+            
+            mediaRecorder = new MediaRecorder(stream, { 
+                mimeType: 'audio/webm;codecs=opus',
+                bitsPerSecond: 6000 
+            });
+            
             audioChunks = [];
             isRecording = true;
             audioBtn.classList.add('btn-active');
@@ -294,7 +301,14 @@
                 if (countdownIntervalId) clearInterval(countdownIntervalId);
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
-                reader.onloadend = () => { sendData('Голосовое сообщение', 'audio', reader.result); };
+                reader.onloadend = () => {
+                    const base64Data = reader.result;
+                    if (base64Data.length > 49500) {
+                        alert("Запись получилась слишком длинной для таблицы, попробуйте говорить короче.");
+                    } else {
+                        sendData('Голосовое сообщение', 'audio', base64Data);
+                    }
+                };
                 reader.readAsDataURL(audioBlob);
                 isRecording = false;
                 audioBtn.classList.remove('btn-active');
