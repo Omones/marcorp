@@ -71,7 +71,7 @@
                 📎 <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
             </label>
             <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
-            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (15 сек)">🎙️ Аудио</button>
+            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (10 сек)">🎙️ Аудио</button>
             <button type="submit" class="btn btn-main">Отправить</button>
         </div>
     </form>
@@ -282,7 +282,7 @@
             isRecording = true;
             audioBtn.classList.add('btn-active');
             
-            let timeLeft = 15;
+            let timeLeft = 10;
             audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
 
             countdownIntervalId = setInterval(() => {
@@ -319,7 +319,7 @@
             mediaRecorder.start(250);
             audioTimeoutId = setTimeout(() => { 
                 if (mediaRecorder.state === "recording") mediaRecorder.stop(); 
-            }, 15000);
+            }, 10000);
         } catch (err) { 
             alert("Доступ к микрофону заблокирован."); 
             if (countdownIntervalId) clearInterval(countdownIntervalId);
