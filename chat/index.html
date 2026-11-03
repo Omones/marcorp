@@ -71,7 +71,7 @@
                 📎 <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
             </label>
             <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
-            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (5 сек)">🎙️ Аудио</button>
+            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (15 сек)">🎙️ Аудио</button>
             <button type="submit" class="btn btn-main">Отправить</button>
         </div>
     </form>
@@ -134,15 +134,28 @@
         try {
             const res = await fetch(GOOGLE_URL);
             const list = await res.json();
-            chatMessages.innerHTML = '';
+            
             const uniqueUsers = new Set();
             uniqueUsers.add(myName);
+            list.forEach(item => { if (item.name) uniqueUsers.add(item.name); });
+            onlineCount.textContent = uniqueUsers.size;
 
-            list.forEach((item, index) => {
+            // Если количество сообщений не изменилось — ничего не перерисовываем, сохраняя плееры
+            if (list.length === lastHandledMessageCount) {
+                return;
+            }
+
+            // Если чат загружается впервые, очищаем дефолтную заглушку текста
+            if (lastHandledMessageCount === 0) {
+                chatMessages.innerHTML = '';
+            }
+
+            // Дописываем в контейнер только новые сообщения, не трогая старые элементы DOM
+            for (let i = lastHandledMessageCount; i < list.length; i++) {
+                const item = list[i];
                 const msgDiv = document.createElement('div');
                 msgDiv.classList.add('msg-block');
                 if (item.name === myName) msgDiv.classList.add('my-msg');
-                if (item.name) uniqueUsers.add(item.name);
 
                 let contentHtml = `<div class="msg-text">${cleanHTML(item.message)}</div>`;
 
@@ -156,7 +169,7 @@
                             <button class="tts-btn" onclick="speakText('${cleanHTML(item.message).replace(/'/g, "\\\\'").replace(/"/g, '\\"')}')">▶️ Озвучить</button>
                         </div>
                     `;
-                    const msgKey = `${item.timestamp}_${item.message}_${index}`;
+                    const msgKey = `${item.timestamp}_${item.message}_${i}`;
                     if (!playedTtsMessages.has(msgKey)) {
                         playedTtsMessages.add(msgKey);
                         if (isBackground && item.name !== myName) speakText(item.message);
@@ -171,13 +184,10 @@
 
                 msgDiv.innerHTML = `<div class="msg-meta"><span>${cleanHTML(item.name)}</span><span>${cleanHTML(item.timestamp)}</span></div>${contentHtml}`;
                 chatMessages.appendChild(msgDiv);
-            });
-            
-            onlineCount.textContent = uniqueUsers.size;
-            if (list.length !== lastHandledMessageCount) {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                lastHandledMessageCount = list.length;
             }
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            lastHandledMessageCount = list.length;
         } catch (err) { console.error(err); }
     }
 
@@ -282,20 +292,13 @@
             return;
         }
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { sampleRate: 11025, channelCount: 1, echoCancellation: true } 
-            });
-            
-            mediaRecorder = new MediaRecorder(stream, { 
-                mimeType: 'audio/webm;codecs=opus',
-                bitsPerSecond: 6000 
-            });
-            
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
             audioChunks = [];
             isRecording = true;
             audioBtn.classList.add('btn-active');
             
-            let timeLeft = 5; // Установлен лимит в 5 секунд
+            let timeLeft = 15; // Возвращаем честные 15 секунд записи
             audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
 
             countdownIntervalId = setInterval(() => {
@@ -315,12 +318,7 @@
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onloadend = () => {
-                    const base64Data = reader.result;
-                    if (base64Data.length > 49500) {
-                        alert("Запись получилась слишком длинной для таблицы.");
-                    } else {
-                        sendData('Голосовое сообщение', 'audio', base64Data);
-                    }
+                    sendData('Голосовое сообщение', 'audio', reader.result);
                 };
                 reader.readAsDataURL(audioBlob);
                 isRecording = false;
@@ -332,7 +330,7 @@
             mediaRecorder.start(250);
             audioTimeoutId = setTimeout(() => { 
                 if (mediaRecorder.state === "recording") mediaRecorder.stop(); 
-            }, 5000); // Остановка ровно через 5000мс
+            }, 15000);
         } catch (err) { 
             alert("Доступ к микрофону заблокирован."); 
             if (countdownIntervalId) clearInterval(countdownIntervalId);
