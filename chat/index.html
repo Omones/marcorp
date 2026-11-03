@@ -71,7 +71,7 @@
                 📎 <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
             </label>
             <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
-            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (10 сек)">🎙️ Аудио</button>
+            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (5 сек)">🎙️ Аудио</button>
             <button type="submit" class="btn btn-main">Отправить</button>
         </div>
     </form>
@@ -102,6 +102,7 @@
     let isRecognizing = false;
     let audioTimeoutId = null;
     let countdownIntervalId = null;
+    let robotIntervalId = null;
 
     function generatePureNick() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -237,21 +238,33 @@
         const recognition = new SpeechRecognition();
         recognition.lang = 'ru-RU';
         recognition.interimResults = false;
+        
         voiceRecBtn.addEventListener('click', () => {
             if (isRecognizing) return;
             isRecognizing = true;
             voiceRecBtn.classList.add('btn-active');
-            voiceRecBtn.textContent = "🎙️ Слушаю...";
+            
+            let elapsedSec = 0;
+            voiceRecBtn.textContent = `🎙️ Слушаю (${elapsedSec}с)`;
+            
+            robotIntervalId = setInterval(() => {
+                elapsedSec++;
+                voiceRecBtn.textContent = `🎙️ Слушаю (${elapsedSec}с)`;
+            }, 1000);
+
             recognition.start();
         });
+
         recognition.onresult = (event) => {
             if (event.results && event.results[0] && event.results[0][0]) {
                 const resultText = event.results[0][0].transcript;
                 if (resultText.trim()) sendData(resultText, 'tts');
             }
         };
+
         recognition.onend = () => {
             isRecognizing = false;
+            if (robotIntervalId) clearInterval(robotIntervalId);
             voiceRecBtn.classList.remove('btn-active');
             voiceRecBtn.textContent = "🎤 Робот";
         };
@@ -282,7 +295,7 @@
             isRecording = true;
             audioBtn.classList.add('btn-active');
             
-            let timeLeft = 10;
+            let timeLeft = 5; // Установлен лимит в 5 секунд
             audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
 
             countdownIntervalId = setInterval(() => {
@@ -304,7 +317,7 @@
                 reader.onloadend = () => {
                     const base64Data = reader.result;
                     if (base64Data.length > 49500) {
-                        alert("Запись получилась слишком длинной для таблицы, попробуйте говорить короче.");
+                        alert("Запись получилась слишком длинной для таблицы.");
                     } else {
                         sendData('Голосовое сообщение', 'audio', base64Data);
                     }
@@ -319,7 +332,7 @@
             mediaRecorder.start(250);
             audioTimeoutId = setTimeout(() => { 
                 if (mediaRecorder.state === "recording") mediaRecorder.stop(); 
-            }, 10000);
+            }, 5000); // Остановка ровно через 5000мс
         } catch (err) { 
             alert("Доступ к микрофону заблокирован."); 
             if (countdownIntervalId) clearInterval(countdownIntervalId);
