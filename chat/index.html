@@ -82,8 +82,9 @@
         </div>
     </form>
 </div>
+
 <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbz7Ujv7a2iK8I12ZoPLsPdwFGEoO_qhGHvkwtGN5zmgHAeGCVfPyzjlfX4CeII9FkuO/exec";
+    const GOOGLE_URL = "https://google.com";
 
     const chatMessages = document.getElementById('chatMessages');
     const chatForm = document.getElementById('chatForm');
@@ -105,6 +106,7 @@
     let audioChunks = [];
     let isRecording = false;
     let isRecognizing = false;
+    let audioTimeoutId = null;
 
     function generatePureNick() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -132,13 +134,11 @@
             window.speechSynthesis.speak(utterance);
         }
     }
-
     async function fetchMessages(isBackground = true) {
         try {
             const res = await fetch(GOOGLE_URL);
             const list = await res.json();
             chatMessages.innerHTML = '';
-            
             const uniqueUsers = new Set();
             uniqueUsers.add(myName);
 
@@ -160,13 +160,10 @@
                             <button class="tts-btn" onclick="speakText('${cleanHTML(item.message).replace(/'/g, "\\\\'").replace(/"/g, '\\"')}')">▶️ Озвучить</button>
                         </div>
                     `;
-                    
                     const msgKey = `${item.timestamp}_${item.message}_${index}`;
                     if (!playedTtsMessages.has(msgKey)) {
                         playedTtsMessages.add(msgKey);
-                        if (isBackground && item.name !== myName) {
-                            speakText(item.message);
-                        }
+                        if (isBackground && item.name !== myName) speakText(item.message);
                     }
                 } else if (item.type === 'file' && item.fileData) {
                     if (item.fileData.startsWith('data:image')) {
@@ -176,13 +173,7 @@
                     }
                 }
 
-                msgDiv.innerHTML = `
-                    <div class="msg-meta">
-                        <span>${cleanHTML(item.name)}</span>
-                        <span>${cleanHTML(item.timestamp)}</span>
-                    </div>
-                    ${contentHtml}
-                `;
+                msgDiv.innerHTML = `<div class="msg-meta"><span>${cleanHTML(item.name)}</span><span>${cleanHTML(item.timestamp)}</span></div>${contentHtml}`;
                 chatMessages.appendChild(msgDiv);
             });
             
@@ -193,24 +184,19 @@
             }
         } catch (err) { console.error(err); }
     }
+
     function startSendTimer(durationMs = 6000) {
         sendTimerContainer.classList.add('visible');
         let start = null;
-        
         function step(timestamp) {
             if (!start) start = timestamp;
             let progress = timestamp - start;
             let remaining = Math.max(0, durationMs - progress);
-            
             timerText.textContent = Math.ceil(remaining / 1000);
             const offset = (remaining / durationMs) * circleLength;
             timerCircle.style.strokeDashoffset = circleLength - offset;
-            
-            if (progress < durationMs) {
-                window.requestAnimationFrame(step);
-            } else {
-                sendTimerContainer.classList.remove('visible');
-            }
+            if (progress < durationMs) window.requestAnimationFrame(step);
+            else sendTimerContainer.classList.remove('visible');
         }
         window.requestAnimationFrame(step);
     }
@@ -220,16 +206,14 @@
         try {
             const now = new Date();
             const timeString = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
             const params = new URLSearchParams();
             params.append('name', myName);
             params.append('message', msg);
             params.append('timestamp', timeString);
             params.append('type', type);
             params.append('fileData', fileData);
-            
             await fetch(GOOGLE_URL, { method: 'POST', body: params });
-            if (type === 'tts') { speakText(msg); }
+            if (type === 'tts') speakText(msg);
             await fetchMessages(false);
         } catch (err) { alert("Ошибка отправки."); }
     }
@@ -246,11 +230,8 @@
         const file = fileInput.files[0];
         if (!file) return;
         if (file.size > 30000) { alert("Файл слишком большой! Лимит для таблицы — 30 КБ."); return; }
-        
         const reader = new FileReader();
-        reader.onload = function(e) {
-            sendData(file.name, 'file', e.target.result);
-        };
+        reader.onload = function(e) { sendData(file.name, 'file', e.target.result); };
         reader.readAsDataURL(file);
         fileInput.value = '';
     });
@@ -260,7 +241,6 @@
         const recognition = new SpeechRecognition();
         recognition.lang = 'ru-RU';
         recognition.interimResults = false;
-
         voiceRecBtn.addEventListener('click', () => {
             if (isRecognizing) return;
             isRecognizing = true;
@@ -268,12 +248,10 @@
             voiceRecBtn.textContent = "🎙️ Слушаю...";
             recognition.start();
         });
-
         recognition.onresult = (event) => {
             const resultText = event.results[0][0].transcript;
-            if (resultText.trim()) { sendData(resultText, 'tts'); }
+            if (resultText.trim()) sendData(resultText, 'tts');
         };
-
         recognition.onend = () => {
             isRecognizing = false;
             voiceRecBtn.classList.remove('btn-active');
@@ -284,22 +262,28 @@
     }
 
     audioBtn.addEventListener('click', async () => {
-        if (isRecording) return;
+        if (isRecording) {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                if (audioTimeoutId) clearTimeout(audioTimeoutId);
+            }
+            return;
+        }
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus', bitsPerSecond: 8000 });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
             audioChunks = [];
             isRecording = true;
             audioBtn.classList.add('btn-active');
-            audioBtn.textContent = "🛑 15 сек...";
+            audioBtn.textContent = "🛑 Стоп (15с)";
 
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.ondataavailable = e => {
+                if (e.data && e.data.size > 0) audioChunks.push(e.data);
+            };
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
-                reader.onloadend = () => {
-                    sendData('Голосовое сообщение', 'audio', reader.result);
-                };
+                reader.onloadend = () => { sendData('Голосовое сообщение', 'audio', reader.result); };
                 reader.readAsDataURL(audioBlob);
                 isRecording = false;
                 audioBtn.classList.remove('btn-active');
@@ -307,9 +291,16 @@
                 stream.getTracks().forEach(track => track.stop());
             };
 
-            mediaRecorder.start();
-            setTimeout(() => { if (mediaRecorder.state === "recording") mediaRecorder.stop(); }, 15000);
-        } catch (err) { alert("Доступ к микрофону заблокирован."); }
+            mediaRecorder.start(250);
+            audioTimeoutId = setTimeout(() => { 
+                if (mediaRecorder.state === "recording") mediaRecorder.stop(); 
+            }, 15000);
+        } catch (err) { 
+            alert("Доступ к микрофону заблокирован."); 
+            isRecording = false;
+            audioBtn.classList.remove('btn-active');
+            audioBtn.textContent = "🎙️ Аудио";
+        }
     });
 
     fetchMessages(false);
