@@ -18,28 +18,23 @@
         .msg-block.my-msg { background: #82061a; align-self: flex-end; }
         .msg-meta { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 5px; font-weight: 600; display: flex; justify-content: space-between; gap: 15px; }
         .msg-text { font-size: 0.95rem; white-space: pre-wrap; }
-        
         .tts-container { display: flex; align-items: center; gap: 10px; margin-top: 5px; background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.2); }
         .tts-btn { background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 4px; }
         .tts-btn:hover { background: #16a34a; }
-        
         .chat-input-form { display: flex; padding: 15px 20px; background: #1f2026; border-top: 1px solid #2d2e35; gap: 10px; align-items: center; flex-wrap: wrap; }
         .input-row { display: flex; flex: 1; gap: 10px; align-items: center; width: 100%; }
         .chat-input-form input[type="text"] { flex: 1; background: #131417; border: 1px solid #2d2e35; padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
         .chat-input-form input:focus { border-color: #82061a; }
-        
         .btn { background: #2d2e35; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; display: flex; align-items: center; justify-content: center; height: 46px; }
         .btn:hover { background: #3e3f46; }
         .btn-main { background: #82061a; }
         .btn-main:hover { background: #b90f2d; }
         .btn-active { background: #22c55e !important; animation: pulse 1s infinite; }
-        
         .file-label { cursor: pointer; }
         #fileInput { display: none; }
         audio { max-width: 240px; height: 35px; margin-top: 5px; display: block; }
         .img-preview { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; display: block; }
         .file-download { color: #3b82f6; text-decoration: underline; font-size: 0.9rem; margin-top: 5px; display: block; }
-
         .timer-container { width: 36px; height: 36px; position: relative; display: flex; align-items: center; justify-content: center; shrink-0; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .timer-container.visible { opacity: 1; }
         .timer-svg { transform: rotate(-90deg); width: 36px; height: 36px; }
@@ -47,7 +42,6 @@
         .timer-bg { stroke: #2d2e35; }
         .timer-progress { stroke: #82061a; stroke-linecap: round; }
         .timer-text { position: absolute; font-size: 0.75rem; font-weight: bold; color: #a1a1aa; }
-
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
@@ -107,6 +101,7 @@
     let isRecording = false;
     let isRecognizing = false;
     let audioTimeoutId = null;
+    let countdownIntervalId = null;
 
     function generatePureNick() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -227,8 +222,9 @@
     });
 
     fileInput.addEventListener('change', () => {
-        const file = fileInput.files[0];
-        if (!file) return;
+        const files = fileInput.files;
+        if (!files || files.length === 0) return;
+        const file = files[0];
         if (file.size > 30000) { alert("Файл слишком большой! Лимит для таблицы — 30 КБ."); return; }
         const reader = new FileReader();
         reader.onload = function(e) { sendData(file.name, 'file', e.target.result); };
@@ -249,8 +245,10 @@
             recognition.start();
         });
         recognition.onresult = (event) => {
-            const resultText = event.results[0][0].transcript;
-            if (resultText.trim()) sendData(resultText, 'tts');
+            if (event.results && event.results[0] && event.results[0][0]) {
+                const resultText = event.results[0][0].transcript;
+                if (resultText.trim()) sendData(resultText, 'tts');
+            }
         };
         recognition.onend = () => {
             isRecognizing = false;
@@ -266,6 +264,7 @@
             if (mediaRecorder && mediaRecorder.state === "recording") {
                 mediaRecorder.stop();
                 if (audioTimeoutId) clearTimeout(audioTimeoutId);
+                if (countdownIntervalId) clearInterval(countdownIntervalId);
             }
             return;
         }
@@ -275,12 +274,24 @@
             audioChunks = [];
             isRecording = true;
             audioBtn.classList.add('btn-active');
-            audioBtn.textContent = "🛑 Стоп (15с)";
+            
+            let timeLeft = 15;
+            audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
+
+            countdownIntervalId = setInterval(() => {
+                timeLeft--;
+                if (timeLeft >= 0) {
+                    audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
+                } else {
+                    if (countdownIntervalId) clearInterval(countdownIntervalId);
+                }
+            }, 1000);
 
             mediaRecorder.ondataavailable = e => {
                 if (e.data && e.data.size > 0) audioChunks.push(e.data);
             };
             mediaRecorder.onstop = () => {
+                if (countdownIntervalId) clearInterval(countdownIntervalId);
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onloadend = () => { sendData('Голосовое сообщение', 'audio', reader.result); };
@@ -297,6 +308,7 @@
             }, 15000);
         } catch (err) { 
             alert("Доступ к микрофону заблокирован."); 
+            if (countdownIntervalId) clearInterval(countdownIntervalId);
             isRecording = false;
             audioBtn.classList.remove('btn-active');
             audioBtn.textContent = "🎙️ Аудио";
