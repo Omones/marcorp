@@ -9,10 +9,12 @@
         body { background-color: #131417; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .chat-box { width: 100vw; height: 100vh; display: flex; flex-direction: column; background: #18191d; }
         .chat-header { background: #1f2026; padding: 15px 20px; font-weight: 700; font-size: 1.1rem; border-bottom: 1px solid #2d2e35; display: flex; justify-content: space-between; align-items: center; }
-        .header-meta { display: flex; align-items: center; gap: 15px; }
+        .header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .header-row { display: flex; align-items: center; gap: 15px; }
         .user-badge { font-size: 0.85rem; color: #a1a1aa; background: #2d2e35; padding: 4px 10px; border-radius: 12px; }
         .online-badge { font-size: 0.85rem; color: #22c55e; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; }
         .online-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; }
+        .online-users-list { font-size: 0.75rem; color: #a1a1aa; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         .msg-block { max-width: 75%; padding: 10px 14px; border-radius: 14px; background: #2d2e35; align-self: flex-start; line-height: 1.4; word-break: break-word; }
         .msg-block.my-msg { background: #82061a; align-self: flex-end; }
@@ -32,7 +34,15 @@
         .btn-active { background: #22c55e !important; animation: pulse 1s infinite; }
         .file-label { cursor: pointer; }
         #fileInput { display: none; }
-        audio { max-width: 240px; height: 35px; margin-top: 5px; display: block; }
+        
+        /* Компактный аудиоплеер без полосы прокрутки */
+        audio { width: 110px; height: 36px; margin-top: 5px; display: block; background: #2d2e35; border-radius: 8px; }
+        audio::-webkit-media-controls-timeline,
+        audio::-webkit-media-controls-current-time-display,
+        audio::-webkit-media-controls-time-remaining-display {
+            display: none !important;
+        }
+        
         .img-preview { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; display: block; }
         .file-download { color: #3b82f6; text-decoration: underline; font-size: 0.9rem; margin-top: 5px; display: block; }
         .timer-container { width: 36px; height: 36px; position: relative; display: flex; align-items: center; justify-content: center; shrink-0; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
@@ -51,8 +61,11 @@
     <div class="chat-header">
         <span>Мультимедиа Канал</span>
         <div class="header-meta">
-            <div class="online-badge"><span class="online-dot"></span>Онлайн: <span id="onlineCount">1</span></div>
-            <span class="user-badge" id="myBadge">...</span>
+            <div class="header-row">
+                <div class="online-badge"><span class="online-dot"></span>Онлайн: <span id="onlineCount">1</span></div>
+                <span class="user-badge" id="myBadge">...</span>
+            </div>
+            <div class="online-users-list" id="onlineUsersList">В сети: ...</div>
         </div>
     </div>
     <div class="chat-messages" id="chatMessages">Загрузка сообщений...</div>
@@ -85,6 +98,7 @@
     const messageInput = document.getElementById('messageInput');
     const myBadge = document.getElementById('myBadge');
     const onlineCount = document.getElementById('onlineCount');
+    const onlineUsersList = document.getElementById('onlineUsersList');
     const sendTimerContainer = document.getElementById('sendTimerContainer');
     const timerCircle = document.getElementById('timerCircle');
     const timerText = document.getElementById('timerText');
@@ -121,6 +135,34 @@
         return String(text).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char] || char));
     }
 
+    // Генерация приятного системного звука уведомления без внешних файлов
+    function playNotificationSound() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            // Двухтональный мягкий писк (высокий колокольчик)
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Ре5
+            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.08); // Ля5
+            
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+        } catch (e) {
+            console.error("Не удалось воспроизвести звук уведомления:", e);
+        }
+    }
+
     function speakText(text) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel(); 
@@ -130,32 +172,55 @@
             window.speechSynthesis.speak(utterance);
         }
     }
+    
+    function formatToTimeOnly(timestampStr) {
+        if (!timestampStr) return "";
+        const timeMatch = timestampStr.match(/\d{2}:\d{2}:\d{2}/);
+        if (timeMatch) {
+            return timeMatch[0];
+        }
+        return timestampStr;
+    }
+
     async function fetchMessages(isBackground = true) {
         try {
             const res = await fetch(GOOGLE_URL);
             const list = await res.json();
             
+            // Фильтрация и точный сбор уникальных ников тех, кто отправлял сообщения
             const uniqueUsers = new Set();
-            uniqueUsers.add(myName);
-            list.forEach(item => { if (item.name) uniqueUsers.add(item.name); });
+            uniqueUsers.add(myName); // Всегда добавляем себя
+            
+            list.forEach(item => { 
+                if (item.name && item.name.trim() !== "" && item.name !== "undefined") {
+                    uniqueUsers.add(item.name.trim()); 
+                }
+            });
+            
+            // Выводим точное количество и список ников через запятую
             onlineCount.textContent = uniqueUsers.size;
+            onlineUsersList.textContent = "В сети: " + Array.from(uniqueUsers).join(', ');
 
-            // Если количество сообщений не изменилось — ничего не перерисовываем, сохраняя плееры
             if (list.length === lastHandledMessageCount) {
                 return;
             }
 
-            // Если чат загружается впервые, очищаем дефолтную заглушку текста
+            let strictlyNewMessagesArrived = false;
+
             if (lastHandledMessageCount === 0) {
                 chatMessages.innerHTML = '';
             }
 
-            // Дописываем в контейнер только новые сообщения, не трогая старые элементы DOM
             for (let i = lastHandledMessageCount; i < list.length; i++) {
                 const item = list[i];
                 const msgDiv = document.createElement('div');
                 msgDiv.classList.add('msg-block');
                 if (item.name === myName) msgDiv.classList.add('my-msg');
+
+                // Проверяем, есть ли чужие сообщения среди новых для звукового сигнала
+                if (lastHandledMessageCount > 0 && item.name !== myName) {
+                    strictlyNewMessagesArrived = true;
+                }
 
                 let contentHtml = `<div class="msg-text">${cleanHTML(item.message)}</div>`;
 
@@ -182,10 +247,17 @@
                     }
                 }
 
-                msgDiv.innerHTML = `<div class="msg-meta"><span>${cleanHTML(item.name)}</span><span>${cleanHTML(item.timestamp)}</span></div>${contentHtml}`;
+                const cleanTime = formatToTimeOnly(item.timestamp);
+
+                msgDiv.innerHTML = `<div class="msg-meta"><span>${cleanHTML(item.name)}</span><span>${cleanHTML(cleanTime)}</span></div>${contentHtml}`;
                 chatMessages.appendChild(msgDiv);
             }
             
+            // Если чат обновляется в фоне и прилетели новые сообщения от других людей — играем звук
+            if (isBackground && strictlyNewMessagesArrived) {
+                playNotificationSound();
+            }
+
             chatMessages.scrollTop = chatMessages.scrollHeight;
             lastHandledMessageCount = list.length;
         } catch (err) { console.error(err); }
@@ -298,7 +370,7 @@
             isRecording = true;
             audioBtn.classList.add('btn-active');
             
-            let timeLeft = 15; // Возвращаем честные 15 секунд записи
+            let timeLeft = 15;
             audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
 
             countdownIntervalId = setInterval(() => {
