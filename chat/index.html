@@ -76,7 +76,7 @@
     <div class="auth-card">
         <h2>Вход в канал</h2>
         <p>Введите цифровой ключ авторизации, чтобы восстановить адрес макроса чата.</p>
-        <input type="text" id="digitsInput" placeholder="Например: 772812549" autocomplete="off">
+        <input type="text" id="digitsInput" placeholder="Введите ваш цифровой ключ..." autocomplete="off">
         <button type="button" class="btn btn-main" style="width: 100%;" id="authBtn">Активировать</button>
     </div>
 </div>
@@ -116,7 +116,6 @@
 </div>
 
 <script>
-    // Точный посимвольный разбор шаблона
     let currentGoogleUrl = "";
 
     const authOverlay = document.getElementById('authOverlay');
@@ -312,19 +311,17 @@
         } catch (err) { alert("Ошибка отправки."); }
     }
 
-    // Безошибочная посимвольная сборка токена
     function assembleUrlWithDigits(digitsStr) {
-        const d = digitsStr.trim().replace(/\D/g, ''); // оставляем только чистые цифры
+        const d = digitsStr.trim().replace(/\D/g, ''); 
         if (d.length < 9) return false; 
 
-        // d[0]='7', d[1]='7', d[2]='2', d[3]='8', d[4]='1', d[5]='2', d[6]='5', d[7]='4', d[8]='9'
-        const t0 = "AKfycbz" + d[0];           // AKfycbz7
-        const t1 = "Ujv" + d[1];               // Ujv7
-        const t2 = "a" + d[2];                 // a2
-        const t3 = "iK" + d[3] + d[4];         // iK81
-        const t4 = "ZoPLsPdwFGEoO_qhGHvkwtGN" + d[5]; // ZoPLsPdwFGEoO_qhGHvkwtGN2
-        const t5 = "zmgHAeGCVfPyzjlfX" + d[6];  // zmgHAeGCVfPyzjlfX5
-        const t6 = "CeII" + d[7] + d[8] + "FkuO"; // CeII49FkuO
+        const t0 = "AKfycbz" + d[0];           
+        const t1 = "Ujv" + d[1];               
+        const t2 = "a" + d[2];                 
+        const t3 = "iK" + d[3] + d[4];         
+        const t4 = "ZoPLsPdwFGEoO_qhGHvkwtGN" + d[5]; 
+        const t5 = "zmgHAeGCVfPyzjlfX" + d[6];  
+        const t6 = "CeII" + d[7] + d[8] + "FkuO"; 
 
         const fullToken = t0 + t1 + t2 + t3 + t4 + t5 + t6;
         currentGoogleUrl = "https://script.google.com/macros/s/" + fullToken + "/exec";
@@ -336,9 +333,7 @@
         return true;
     }
 
-    // 1. Извлекаем цифры из хэша ссылки (index.html#772812549)
     const hashDigits = window.location.hash.substring(1);
-    // 2. Смотрим, сохранены ли цифры в сессии браузера
     const savedDigits = sessionStorage.getItem('chat_puzzle_digits');
 
     if (hashDigits && /^\d+$/.test(hashDigits)) {
