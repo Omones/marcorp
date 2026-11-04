@@ -91,7 +91,7 @@ function loadDataFromSource() {
     }
 }
 
-function fetchGoogleSpreadsheetData() {
+async function fetchGoogleSpreadsheetData() {
     const url = googleUrlInput.value.trim();
     if (!url) {
         orders = [];
@@ -99,20 +99,52 @@ function fetchGoogleSpreadsheetData() {
         if (typeof renderOrdersTable === 'function') renderOrdersTable();
         return;
     }
-    const oldScript = document.getElementById('google-jsonp-script');
-    if (oldScript) oldScript.remove();
 
-    const separator = url.indexOf('?') !== -1 ? '&' : '?';
-    const jsonpUrl = url + separator + 'callback=handleGoogleJsonpResponse&_ts=' + Date.now();
-
-    const script = document.createElement('script');
-    script.id = 'google-jsonp-script';
-    script.src = jsonpUrl;
-    script.onerror = function() {
-        alert('Не удалось выполнить запрос к скрипту Google. Проверьте правильность URL.');
-    };
-    document.body.appendChild(script);
+    try {
+        const response = await fetch(url);
+        const resData = await response.json();
+        
+        if (resData && resData.result === 'success') {
+            parseGoogleDataArray(resData.data);
+        } else {
+            alert('Ошибка Apps Script: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+        }
+    } catch (err) {
+        alert('Не удалось выполнить запрос к скрипту Google. Проверьте URL или настройки CORS.');
+        console.error(err);
+    }
 }
+
+// Обновление функции handleSaveOrder (часть отправки в Google)
+// Замените блок отправки скрипта в handleSaveOrder на:
+if (source === 'google') {
+    const url = googleUrlInput.value.trim();
+    if (!url) { alert('Не указан URL шлюза Google!'); return; }
+    
+    const actionType = currentEditingOrderId === null ? 'create' : 'update';
+    const separator = url.indexOf('?') !== -1 ? '&' : '?';
+    
+    const mutationUrl = url + separator + 
+        'action=' + actionType +
+        '&index=' + currentEditingOrderId +
+        '&order=' + encodeURIComponent(JSON.stringify(orderData));
+
+    try {
+        const response = await fetch(mutationUrl);
+        const resData = await response.json();
+        if (resData && resData.result === 'success') {
+            alert('Данные в Google Таблице успешно обновлены!');
+            fetchGoogleSpreadsheetData();
+        } else {
+            alert('Ошибка изменения в Google: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+        }
+    } catch (err) {
+        alert('Ошибка сети при обмене с Google Таблицей.');
+        console.error(err);
+    }
+    closeModal();
+}
+
 
 function parseGoogleDataArray(matrix) {
     if (!matrix || matrix.length <= 1) {
