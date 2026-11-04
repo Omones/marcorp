@@ -88,3 +88,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--taxi-orange); bo
     .taxi-grid { grid-template-columns: 1fr; }
     .form-group[style*="grid-column"] { grid-column: auto !important; }
 }
+/* Стили для уведомлений */
+.toast {
+    background: #fff;
+    color: #333;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    font-size: 14px;
+    animation: slideIn 0.3s ease-out forwards;
+    border-left: 4px solid var(--taxi-orange);
+}
+
+.toast.success { border-left-color: var(--taxi-status-green-text); }
+.toast.error { border-left-color: var(--taxi-status-red-text); }
+
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--taxi-orange);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    animation: spin 1s linear infinite;
+}
+
+.checkmark {
+    color: var(--taxi-status-green-text);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
