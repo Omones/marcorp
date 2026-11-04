@@ -170,16 +170,25 @@ function openOrderModal(index) {
         modalCommentsTextarea.value = "";
         orderModal.tempItems = [];
     } else {
-        const order = orders[index];
-        modalOrderTitle.textContent = 'Заказ клиента #' + order.displayId;
-        modalCustomerInput.value = order.customer;
-        modalTotalInput.value = order.total;
-        modalShippingInput.value = order.shipping;
-        modalDateInput.value = order.date;
-        modalDeliveryDateInput.value = order.deliveryDate || "";
-        modalStatusSelect.value = order.status;
-        modalCommentsTextarea.value = order.comments || "";
-        orderModal.tempItems = JSON.parse(JSON.stringify(order.items));
+               // Корректное преобразование даты документа для datetime-local
+        if (order.date) {
+            let dStr = String(order.date).trim();
+            if (dStr.includes(' ')) {
+                dStr = dStr.replace(' ', 'T'); // Заменяем пробел на T для корректного отображения в datetime-local
+            }
+            modalDateInput.value = dStr.slice(0, 16);
+        } else {
+            modalDateInput.value = "";
+        }
+        
+        // Корректное преобразование плановой даты для обычного input type="date"
+        if (order.deliveryDate) {
+            let delStr = String(order.deliveryDate).trim();
+            modalDeliveryDateInput.value = delStr.split(' ')[0].split('T')[0]; // Вырезаем только YYYY-MM-DD
+        } else {
+            modalDeliveryDateInput.value = "";
+        }
+
     }
     renderModalItemsTable();
     orderModal.style.display = "block";
