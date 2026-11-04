@@ -95,7 +95,7 @@ function renderOrdersTable() {
             '<td>' + imagesHtml + '</td>' +
             '<td><input type="number" style="width:100%; font-weight:bold; padding:2px; text-align:right;" value="' + order.total + '" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'total\', this.value)"></td>' +
             '<td>' +
-                '<select style="width:100%; padding:2px; font-size:12px;" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'status\', this.value); this.className=\'badge tyranny \' + getStatusBadgeClass(this.value)">' +
+                '<select style="width:100%; padding:2px; font-size:12px;" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'status\', this.value); this.className=\'badge \' + getStatusBadgeClass(this.value)">' +
                     '<option value="ожидает оплаты"' + (order.status === 'ожидает оплаты' ? ' selected' : '') + '>ожидает оплаты</option>' +
                     '<option value="оплачен, оформляется"' + (order.status === 'оплачен, оформляется' ? ' selected' : '') + '>оплачен, оформляется</option>' +
                     '<option value="ожидаем поставку"' + (order.status === 'ожидаем поставку' ? ' selected' : '') + '>ожидаем поставку</option>' +
@@ -115,6 +115,7 @@ function renderOrdersTable() {
     updateSummaryProfit();
 }
 window.renderOrdersTable = renderOrdersTable;
+
 
 
 async function deleteOrder(index) {
