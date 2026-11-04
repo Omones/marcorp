@@ -25,7 +25,8 @@
                 <option value="local">Локальное хранилище</option>
                 <option value="google">Google Таблица</option>
             </select>
-            <button type="button" id="sync-google-btn" class="taxi-btn" style="display: none; padding: 4px 10px;" title="Синхронизировать данные">🔄 Обновить</button>
+            <input type="password" id="google-url-input" class="taxi-select-sm" style="height: 32px; display: none; width: 200px;" placeholder="Вставьте секретный URL скрипта...">
+            <button type="button" id="sync-google-btn" class="taxi-btn" style="display: none; padding: 4px 10px;" title="Синхронизировать данные">🔄 Синхр.</button>
         </div>
 
         <div style="margin-left: auto; display: flex; align-items: center; font-weight: bold; font-size: 15px;">
@@ -102,7 +103,6 @@
                         </div>
                         <div class="taxi-table-wrapper">
                             <table class="taxi-table" style="table-layout: auto;">
-                                <!-- Спецификация -->
                                 <thead>
                                     <tr>
                                         <th>Наименование товара</th>
