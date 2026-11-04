@@ -2,7 +2,7 @@ let orders = [];
 let customers = [];
 let currentEditingOrderId = null;
 
-const GOOGLE_SPREADSHEET_CSV_URL = "https://google.com";
+const GOOGLE_SPREADSHEET_CSV_URL = "https://script.google.com/macros/s/AKfycbxv5c1wC87B0J7aplu5MpXYoqeV7CLF7OoQWDKRIWsO4Brah_XjUxVdapj_0FI2QlqR/exec";
 
 const topCreateBtn = document.getElementById('top-create-btn');
 const orderModal = document.getElementById('order-modal');
