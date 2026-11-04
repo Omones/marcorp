@@ -24,6 +24,52 @@ const dbSourceSelect = document.getElementById('db-source-select');
 const googleUrlInput = document.getElementById('google-url-input');
 const syncGoogleBtn = document.getElementById('sync-google-btn');
 
+// --- ФУНКЦИИ УВЕДОМЛЕНИЙ (TOAST) ---
+function showLoadingToast(text = "Синхронизация с Google...") {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    container.innerHTML = ''; // Очищаем старые уведомления
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.id = 'sync-toast';
+    toast.innerHTML = '<div class="spinner"></div><span>' + text + '</span>';
+    container.appendChild(toast);
+}
+
+function showSuccessToast(text = "Успешно сохранено!") {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.getElementById('sync-toast') || document.createElement('div');
+    toast.className = 'toast success';
+    toast.innerHTML = '<span class="checkmark">✓</span><span>' + text + '</span>';
+    
+    if (!toast.parentNode) container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
+
+function showErrorToast(text) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.getElementById('sync-toast') || document.createElement('div');
+    toast.className = 'toast error';
+    toast.innerHTML = '<span>⚠️</span><span>' + text + '</span>';
+    
+    if (!toast.parentNode) container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// --- ИНИЦИАЛИЗАЦИЯ И ОБРАБОТЧИКИ СОБЫТИЙ ---
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof initModalAddSelect === 'function') initModalAddSelect();
 
@@ -31,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         googleUrlInput.value = sessionStorage.getItem('scots_google_url');
     }
 
-    // Принудительно настраиваем видимость полей ввода при первой загрузке
     handleToggleUiElements(dbSourceSelect.value);
     loadDataFromSource();
 
@@ -57,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalShippingInput) modalShippingInput.addEventListener('input', recalculateModalTotal);
 });
 
-// Переключение видимости элементов интерфейса источника данных
 function handleToggleUiElements(source) {
     if (source === 'google') {
         googleUrlInput.style.display = 'inline-block';
@@ -86,24 +130,24 @@ function loadDataFromSource() {
     }
 }
 
-// JSONP-ответчик для чтения данных из Google Таблицы
+// --- ОТВЕТЧИКИ GOOGLE (JSONP) ---
 window.handleGoogleJsonpResponse = function(resData) {
     if (resData && resData.result === 'success') {
         parseGoogleDataArray(resData.data);
+        showSuccessToast("Данные загружены");
     } else {
-        alert('Ошибка Apps Script: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+        showErrorToast('Ошибка Apps Script: ' + (resData ? resData.message : 'Неизвестная ошибка'));
     }
     const oldScript = document.getElementById('google-jsonp-script');
     if (oldScript) oldScript.remove();
 };
 
-// JSONP-ответчик для мутаций (create/update/delete) в Google Таблице
 window.handleGoogleMutationResponse = function(resData) {
     if (resData && resData.result === 'success') {
-        alert('Данные в Google Таблице успешно обновлены!');
+        showSuccessToast("Данные в Google Таблице обновлены!");
         fetchGoogleSpreadsheetData();
     } else {
-        alert('Ошибка изменения в Google: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+        showErrorToast('Ошибка изменения в Google: ' + (resData ? resData.message : 'Неизвестная ошибка'));
     }
     const oldScript = document.getElementById('google-mutation-script');
     if (oldScript) oldScript.remove();
@@ -118,6 +162,8 @@ function fetchGoogleSpreadsheetData() {
         return;
     }
 
+    showLoadingToast("Загрузка данных из Google...");
+
     const oldScript = document.getElementById('google-jsonp-script');
     if (oldScript) oldScript.remove();
 
@@ -128,9 +174,45 @@ function fetchGoogleSpreadsheetData() {
     script.id = 'google-jsonp-script';
     script.src = jsonpUrl;
     script.onerror = function() {
-        alert('Не удалось выполнить запрос к скрипту Google. Проверьте правильность URL.');
+        showErrorToast('Не удалось выполнить запрос к скрипту Google. Проверьте URL.');
     };
     document.body.appendChild(script);
+}
+
+// --- УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТПРАВКИ ИЗМЕНЕНИЙ В GOOGLE ---
+function sendGoogleMutation(actionType, index, orderData) {
+    const url = googleUrlInput.value.trim();
+    if (!url) { showErrorToast('Не указан URL шлюза Google!'); return; }
+
+    showLoadingToast("Сохранение в Google...");
+
+    const oldScript = document.getElementById('google-mutation-script');
+    if (oldScript) oldScript.remove();
+
+    const separator = url.indexOf('?') !== -1 ? '&' : '?';
+    let mutationUrl = url + separator +
+        'callback=handleGoogleMutationResponse' +
+        '&action=' + actionType +
+        '&index=' + index +
+        '&_ts=' + Date.now();
+        
+    if (orderData) {
+        mutationUrl += '&order=' + encodeURIComponent(JSON.stringify(orderData));
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-mutation-script';
+    script.src = mutationUrl;
+    document.body.appendChild(script);
+}
+
+// --- ПАРСИНГ И ФОРМАТИРОВАНИЕ ДАТ ---
+function formatDateForInput(dateStr) {
+    if (!dateStr) return "";
+    // Превращаем пробел в T (если пришло из таблицы), и обрезаем до нужного формата
+    let str = String(dateStr).replace(' ', 'T');
+    if (str.length > 16) str = str.slice(0, 16);
+    return str;
 }
 
 function parseGoogleDataArray(matrix) {
@@ -147,8 +229,8 @@ function parseGoogleDataArray(matrix) {
         const row = matrix[i];
         if (!row || row.length < 3) continue;
 
-        const date = row[0] ? String(row[0]) : "";
-        const deliveryDate = row[1] ? String(row[1]) : "";
+        const date = formatDateForInput(row[0]);
+        const deliveryDate = formatDateForInput(row[1]);
         const customerName = row[2] ? String(row[2]).trim() : "";
         const total = parseFloat(row[3]) || 0;
         const shipping = parseFloat(row[4]) || 0;
@@ -185,6 +267,7 @@ function parseGoogleDataArray(matrix) {
     if (typeof renderOrdersTable === 'function') renderOrdersTable();
 }
 
+// --- РАСЧЕТ ПРИБЫЛИ ---
 function calculateProfit(order) {
     if (!order || !order.items) return 0;
     const totalCostOfItems = order.items.reduce(
@@ -196,6 +279,7 @@ function calculateProfit(order) {
 }
 window.calculateProfit = calculateProfit;
 
+// --- РАБОТА С МОДАЛЬНЫМ ОКНОМ ---
 function openOrderModal(index) {
     currentEditingOrderId = index;
     if (index === null) {
@@ -218,22 +302,10 @@ function openOrderModal(index) {
         modalCustomerInput.value = order.customer;
         modalTotalInput.value = order.total;
         modalShippingInput.value = order.shipping;
-
-        if (order.date) {
-            let dateStr = String(order.date).replace(' ', 'T');
-            if (dateStr.length > 16) dateStr = dateStr.slice(0, 16);
-            modalDateInput.value = dateStr;
-        } else {
-            modalDateInput.value = "";
-        }
-
-        if (order.deliveryDate) {
-            let delivStr = String(order.deliveryDate).replace(' ', 'T').split('T')[0];
-            modalDeliveryDateInput.value = delivStr;
-        } else {
-            modalDeliveryDateInput.value = "";
-        }
-
+        
+        modalDateInput.value = formatDateForInput(order.date);
+        modalDeliveryDateInput.value = order.deliveryDate ? String(order.deliveryDate).split('T')[0] : "";
+        
         modalStatusSelect.value = order.status;
         modalCommentsTextarea.value = order.comments || "";
         orderModal.tempItems = JSON.parse(JSON.stringify(order.items || []));
@@ -280,31 +352,15 @@ async function handleSaveOrder(e) {
         localStorage.setItem('scots_orders', JSON.stringify(orders));
         if (typeof renderOrdersTable === 'function') renderOrdersTable();
         closeModal();
-
+        showSuccessToast("Сохранено локально");
     } else if (source === 'google') {
-        const url = googleUrlInput.value.trim();
-        if (!url) { alert('Не указан URL шлюза Google!'); return; }
-
         const actionType = currentEditingOrderId === null ? 'create' : 'update';
-        const oldScript = document.getElementById('google-mutation-script');
-        if (oldScript) oldScript.remove();
-
-        const separator = url.indexOf('?') !== -1 ? '&' : '?';
-        const mutationUrl = url + separator +
-            'callback=handleGoogleMutationResponse' +
-            '&action=' + actionType +
-            '&index=' + currentEditingOrderId +
-            '&order=' + encodeURIComponent(JSON.stringify(orderData)) +
-            '&_ts=' + Date.now();
-
-        const script = document.createElement('script');
-        script.id = 'google-mutation-script';
-        script.src = mutationUrl;
-        document.body.appendChild(script);
+        sendGoogleMutation(actionType, currentEditingOrderId, orderData);
         closeModal();
     }
 }
 
+// --- ЭКСПОРТ / ИМПОРТ ---
 document.addEventListener('DOMContentLoaded', () => {
     const topExportBtn = document.getElementById('top-export-btn');
     const topImportBtn = document.getElementById('top-import-btn');
@@ -313,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (topExportBtn) {
         topExportBtn.addEventListener('click', () => {
             if (dbSourceSelect.value === 'google') {
-                alert('Экспорт локальных файлов недоступен в режиме Google Таблицы.');
+                showErrorToast('Экспорт локальных файлов недоступен в режиме Google Таблицы.');
                 return;
             }
             const backupData = {
@@ -334,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (topImportBtn && dbFileInput) {
         topImportBtn.addEventListener('click', () => {
             if (dbSourceSelect.value === 'google') {
-                alert('Импорт локальных файлов недоступен в режиме Google Таблицы.');
+                showErrorToast('Импорт локальных файлов недоступен в режиме Google Таблицы.');
                 return;
             }
             dbFileInput.click();
@@ -361,10 +417,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         if (typeof renderOrdersTable === 'function') renderOrdersTable();
                         if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
-                        alert("Успешно!");
+                        showSuccessToast("Импорт успешно завершен!");
                     }
                 } catch (err) {
-                    alert("Ошибка: " + err.message);
+                    showErrorToast("Ошибка: " + err.message);
                 }
                 dbFileInput.value = '';
             };
