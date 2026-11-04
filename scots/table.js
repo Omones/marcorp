@@ -116,16 +116,37 @@ function renderOrdersTable() {
 }
 window.renderOrdersTable = renderOrdersTable;
 
-function deleteOrder(index) {
+async function deleteOrder(index) {
     const dbSourceSelect = document.getElementById('db-source-select');
-    if (dbSourceSelect && dbSourceSelect.value === 'google') return;
+    const googleUrlInput = document.getElementById('google-url-input');
+    
     if (confirm('Удалить выбранный документ из журнала?')) {
-        orders.splice(index, 1);
-        localStorage.setItem('scots_orders', JSON.stringify(orders));
-        renderOrdersTable();
+        if (dbSourceSelect && dbSourceSelect.value === 'google') {
+            const url = googleUrlInput.value.trim();
+            if (!url) { alert('Не указан URL шлюза Google!'); return; }
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', index: index })
+                });
+                alert('Запрос на удаление отправлен.');
+                if (typeof loadDataFromSource === 'function') {
+                    setTimeout(loadDataFromSource, 1500);
+                }
+            } catch (err) {
+                alert('Ошибка отправки: ' + err.message);
+            }
+        } else {
+            orders.splice(index, 1);
+            localStorage.setItem('scots_orders', JSON.stringify(orders));
+            renderOrdersTable();
+        }
     }
 }
 window.deleteOrder = deleteOrder;
+
 
 function initTableResizable() {
     const table = document.querySelector('.taxi-table');
