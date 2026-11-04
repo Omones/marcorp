@@ -3,135 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Обмен Файлами</title>
+    <title>Чистый P2P Файлообменник (WebRTC)</title>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
-        .box { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 20px; cursor: pointer; }
-        .hidden { display: none; }
-        input[type="text"] { width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; }
+        .box { border: 2px dashed #007bff; padding: 20px; text-align: center; margin-bottom: 20px; }
+        textarea { width: 100%; height: 100px; box-sizing: border-box; font-family: monospace; font-size: 11px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; margin: 5px 0; }
         button:hover { background: #0056b3; }
-        #log { background: #f8f9fa; padding: 10px; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; }
+        .step { background: #f8f9fa; padding: 15px; border: 1px solid #ddd; margin-bottom: 15px; border-radius: 4px; }
     </style>
-    <!-- Подключаем клиентскую библиотеку WebTorrent -->
-    <script src="webtorrent.js"></script>
 </head>
 <body>
 
-    <h1>P2P Файлообменник (WebTorrent)</h1>
-    <p><strong>Важно:</strong> Не закрывайте вкладку, пока получатель полностью не скачает файл!</p>
+    <h1>Прямой P2P Обмен (Без торрент-трекеров)</h1>
 
-    <!-- Секция отправки -->
-    <div class="box" id="dropzone">
-        <p>Нажмите, чтобы выбрать файл для раздачи</p>
-        <input type="file" id="fileInput" class="hidden">
+    <!-- Шаг 1: Инициатор (Отправитель) -->
+    <div class="step">
+        <h3>Шаг 1: Создать подключение (Отправитель)</h3>
+        <div class="box">
+            <input type="file" id="fileInput">
+        </div>
+        <button id="createOfferBtn">1. Создать код подключения</button>
+        <p>Скопируйте этот код и отправьте получателю:</p>
+        <textarea id="localOffer" readonly onclick="this.select()"></textarea>
     </div>
 
-    <div id="shareSection" class="hidden">
-        <p>Отправьте эту ссылку получателю:</p>
-        <input type="text" id="shareLink" readonly onclick="this.select()">
+    <!-- Шаг 2: Получатель -->
+    <div class="step">
+        <h3>Шаг 2: Подключение (Получатель)</h3>
+        <p>Вставьте код от отправителя сюда:</p>
+        <textarea id="remoteOffer" placeholder="Вставьте код сюда..."></textarea>
+        <button id="acceptOfferBtn">2. Принять подключение и создать ответный код</button>
+        <p>Скопируйте этот ответный код и верните отправителю:</p>
+        <textarea id="localAnswer" readonly onclick="this.select()"></textarea>
     </div>
 
-    <hr>
-
-    <!-- Секция получения (автоматически сработает, если в URL есть хеш) -->
-    <div id="downloadSection" class="hidden">
-        <h3>Обнаружен файл для скачивания</h3>
-        <button id="downloadBtn">Скачать файл</button>
-        <div id="fileResult"></div>
+    <!-- Шаг 3: Финал для Отправителя -->
+    <div class="step">
+        <h3>Шаг 3: Завершение соединения (Отправитель)</h3>
+        <p>Вставьте ответный код от получателя сюда:</p>
+        <textarea id="remoteAnswer" placeholder="Вставьте ответный код..."></textarea>
+        <button id="connectBtn">3. Соединиться</button>
     </div>
 
-    <h3>Лог процесса:</h3>
-    <div id="log">Инициализация клиента...</div>
+    <div class="step">
+        <h3>Статус передачи:</h3>
+        <div id="status" style="font-weight: bold; color: green;">Ожидание действий...</div>
+        <div id="result"></div>
+    </div>
 
     <script>
-        const client = new WebTorrent();
-        const logEl = document.getElementById('log');
-        const fileInput = document.getElementById('fileInput');
-        const dropzone = document.getElementById('dropzone');
-        const shareSection = document.getElementById('shareSection');
-        const shareLink = document.getElementById('shareLink');
-        const downloadSection = document.getElementById('downloadSection');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const fileResult = document.getElementById('fileResult');
+        const configuration = { iceServers: [{ urls: 'stun:://google.com' }] };
+        let pc = new RTCPeerConnection(configuration);
+        let sendChannel;
+        let fileData = null;
 
-        function log(message) {
-            logEl.textContent += '\n' + message;
-            logEl.scrollTop = logEl.scrollHeight;
-        }
+        const statusEl = document.getElementById('status');
+        const resultEl = document.getElementById('result');
 
-        client.on('error', err => log('Ошибка клиента: ' + err.message));
-        log('Клиент WebTorrent готов.');
-
-        // Проверяем, есть ли инфо-хеш в URL (для скачивающего)
-        const infoHash = window.location.hash.substring(1);
-        if (infoHash) {
-            downloadSection.classList.remove('hidden');
-            log('Найдена ссылка на торрент: ' + infoHash);
-        }
-
-        // Клик по зоне загрузки
-        dropzone.addEventListener('click', () => fileInput.click());
-
-        // Отправка (Раздача) файла
-        fileInput.addEventListener('change', (e) => {
+        // Отправитель выбирает файл
+        document.getElementById('fileInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (!file) return;
-
-            log(`Создание торрента для файла: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)...`);
-
-            // Запускаем сидирование файла через WebTorrent
-            client.seed(file, (torrent) => {
-                log('Файл успешно раздается!');
-                log('Инфо-хеш: ' + torrent.infoHash);
-
-                // Формируем прямую ссылку с хэшем в конце
-                const link = window.location.origin + window.location.pathname + '#' + torrent.infoHash;
-                shareLink.value = link;
-                shareSection.classList.remove('hidden');
-
-                // Мониторинг подключений
-                torrent.on('wire', (wire) => {
-                    log('Подключился новый пир (скачивающий)!');
-                });
-            });
+            if (file) {
+                fileData = file;
+                statusEl.textContent = `Файл "${file.name}" готов к отправке. Нажмите "Создать код подключения".`;
+            }
         });
 
-        // Получение (Скачивание) файла
-        downloadBtn.addEventListener('click', () => {
-            downloadBtn.disabled = true;
-            log('Подключение к пирам и поиск раздающего...');
+        // 1. Отправитель создает Оффер
+        document.getElementById('createOfferBtn').addEventListener('click', async () => {
+            sendChannel = pc.createDataChannel("fileTransfer");
+            sendChannel.binaryType = 'arraybuffer';
+            setupSendChannel();
 
-            // Скачиваем торрент по инфо-хешу из URL
-            client.add(infoHash, (torrent) => {
-                log('Торрент найден! Начинается скачивание...');
+            pc.onicecandidate = e => {
+                if (!e.candidate) {
+                    document.getElementById('localOffer').value = btoa(JSON.stringify(pc.localDescription));
+                    statusEl.textContent = "Код подключения создан! Передайте его Получателю.";
+                }
+            };
 
-                torrent.on('download', (bytes) => {
-                    log(`Прогресс: ${(torrent.progress * 100).toFixed(1)}% | Скорость: ${(client.downloadSpeed/1024/1024).toFixed(2)} MB/s`);
-                });
-
-                torrent.on('done', () => {
-                    log('Скачивание завершено успешно!');
-                    
-                    // Извлекаем файл из торрента и отдаем пользователю в браузере
-                    const file = torrent.files[0];
-                    file.getBlob((err, blob) => {
-                        if (err) return log('Ошибка сборки файла: ' + err.message);
-                        
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = file.name;
-                        a.textContent = `Сохранить файл "${file.name}" на устройство`;
-                        a.style.display = 'block';
-                        a.style.marginTop = '15px';
-                        
-                        fileResult.appendChild(a);
-                        log('Файл готов к сохранению.');
-                    });
-                });
-            });
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
         });
+
+        // 2. Получатель принимает Оффер и создает Ответ (Answer)
+        document.getElementById('acceptOfferBtn').addEventListener('click', async () => {
+            const offerText = document.getElementById('remoteOffer').value;
+            if (!offerText) return alert('Вставьте код из Шага 1!');
+
+            const offerDesc = new RTCSessionDescription(JSON.parse(atob(offerText)));
+            
+            pc.ondatachannel = e => {
+                const receiveChannel = e.channel;
+                receiveChannel.binaryType = 'arraybuffer';
+                setupReceiveChannel(receiveChannel);
+            };
+
+            pc.onicecandidate = e => {
+                if (!e.candidate) {
+                    document.getElementById('localAnswer').value = btoa(JSON.stringify(pc.localDescription));
+                    statusEl.textContent = "Ответный код создан! Передайте его обратно Отправителю.";
+                }
+            };
+
+            await pc.setRemoteDescription(offerDesc);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+        });
+
+        // 3. Отправитель принимает Ответ и запускает соединение
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            const answerText = document.getElementById('remoteAnswer').value;
+            if (!answerText) return alert('Вставьте ответный код!');
+            
+            const answerDesc = new RTCSessionDescription(JSON.parse(atob(answerText)));
+            await pc.setRemoteDescription(answerDesc);
+        });
+
+        function setupSendChannel() {
+            sendChannel.onopen = () => {
+                statusEl.textContent = "Соединение установлено! Начинается прямая передача файла...";
+                
+                const reader = new FileReader();
+                reader.onload = e => {
+                    // Отправляем метаданные и файл
+                    sendChannel.send(JSON.stringify({ name: fileData.name, size: fileData.size }));
+                    sendChannel.send(e.target.result);
+                    statusEl.textContent = "Файл успешно отправлен напрямую в браузер получателя!";
+                };
+                reader.readAsArrayBuffer(fileData);
+            };
+        }
+
+        function setupReceiveChannel(channel) {
+            let meta = null;
+            channel.onmessage = e => {
+                if (typeof e.data === 'string') {
+                    meta = JSON.parse(e.data);
+                    statusEl.textContent = `Принимаем файл: ${meta.name}...`;
+                } else {
+                    const blob = new Blob([e.data]);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = meta.name;
+                    a.textContent = `Скачать полученный файл: ${meta.name}`;
+                    a.style.display = 'block';
+                    resultEl.appendChild(a);
+                    statusEl.textContent = "Файл успешно получен по прямому зашифрованному P2P-каналу!";
+                }
+            };
+        }
     </script>
 </body>
 </html>
