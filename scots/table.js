@@ -127,18 +127,17 @@ async function deleteOrder(index) {
             const url = googleUrlInput.value.trim();
             if (!url) { alert('Не указан URL шлюза Google!'); return; }
             try {
-                await fetch(url, {
+                fetch(url, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'delete', index: index })
                 });
-                alert('Запрос на удаление отправлен.');
-                if (typeof loadDataFromSource === 'function') {
-                    setTimeout(loadDataFromSource, 1500);
-                }
+                
+                orders.splice(index, 1);
+                renderOrdersTable();
             } catch (err) {
-                alert('Ошибка отправки: ' + err.message);
+                alert('Ошибка отправки запроса: ' + err.message);
             }
         } else {
             orders.splice(index, 1);
@@ -148,6 +147,7 @@ async function deleteOrder(index) {
     }
 }
 window.deleteOrder = deleteOrder;
+
 
 
 function initTableResizable() {
