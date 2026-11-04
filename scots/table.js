@@ -126,19 +126,21 @@ async function deleteOrder(index) {
         if (dbSourceSelect && dbSourceSelect.value === 'google') {
             const url = googleUrlInput.value.trim();
             if (!url) { alert('Не указан URL шлюза Google!'); return; }
-            try {
-                fetch(url, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'delete', index: index })
-                });
-                
-                orders.splice(index, 1);
-                renderOrdersTable();
-            } catch (err) {
-                alert('Ошибка отправки запроса: ' + err.message);
-            }
+            
+            const oldScript = document.getElementById('google-mutation-script');
+            if (oldScript) oldScript.remove();
+
+            const separator = url.indexOf('?') !== -1 ? '&' : '?';
+            const mutationUrl = url + separator + 
+                'callback=handleGoogleMutationResponse' +
+                '&action=delete' +
+                '&index=' + index +
+                '&_ts=' + Date.now();
+
+            const script = document.createElement('script');
+            script.id = 'google-mutation-script';
+            script.src = mutationUrl;
+            document.body.appendChild(script);
         } else {
             orders.splice(index, 1);
             localStorage.setItem('scots_orders', JSON.stringify(orders));
@@ -147,6 +149,7 @@ async function deleteOrder(index) {
     }
 }
 window.deleteOrder = deleteOrder;
+
 
 
 
