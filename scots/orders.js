@@ -58,6 +58,27 @@ document.addEventListener('DOMContentLoaded', () => {
     modalAddItemBtn.addEventListener('click', addItemToModalTable);
     modalShippingInput.addEventListener('input', recalculateModalTotal);
 });
+window.handleGoogleJsonpResponse = function(resData) {
+    if (resData && resData.result === 'success') {
+        parseGoogleDataArray(resData.data);
+    } else {
+        alert('Ошибка Apps Script: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+    }
+    const oldScript = document.getElementById('google-jsonp-script');
+    if (oldScript) oldScript.remove();
+};
+
+window.handleGoogleMutationResponse = function(resData) {
+    if (resData && resData.result === 'success') {
+        alert('Данные в Google Таблице успешно обновлены!');
+        fetchGoogleSpreadsheetData();
+    } else {
+        alert('Ошибка изменения в Google: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+    }
+    const oldScript = document.getElementById('google-mutation-script');
+    if (oldScript) oldScript.remove();
+};
+
 function loadDataFromSource() {
     const source = dbSourceSelect.value;
     if (source === 'local') {
@@ -70,7 +91,7 @@ function loadDataFromSource() {
     }
 }
 
-async function fetchGoogleSpreadsheetData() {
+function fetchGoogleSpreadsheetData() {
     const url = googleUrlInput.value.trim();
     if (!url) {
         orders = [];
@@ -78,18 +99,19 @@ async function fetchGoogleSpreadsheetData() {
         if (typeof renderOrdersTable === 'function') renderOrdersTable();
         return;
     }
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Некорректный ответ шлюза');
-        const resData = await response.json();
-        if (resData.result === 'success') {
-            parseGoogleDataArray(resData.data);
-        } else {
-            throw new Error(resData.message || 'Ошибка Apps Script');
-        }
-    } catch (error) {
-        alert('Не удалось синхронизировать данные: ' + error.message);
-    }
+    const oldScript = document.getElementById('google-jsonp-script');
+    if (oldScript) oldScript.remove();
+
+    const separator = url.indexOf('?') !== -1 ? '&' : '?';
+    const jsonpUrl = url + separator + 'callback=handleGoogleJsonpResponse&_ts=' + Date.now();
+
+    const script = document.createElement('script');
+    script.id = 'google-jsonp-script';
+    script.src = jsonpUrl;
+    script.onerror = function() {
+        alert('Не удалось выполнить запрос к скрипту Google. Проверьте правильность URL.');
+    };
+    document.body.appendChild(script);
 }
 
 function parseGoogleDataArray(matrix) {
@@ -113,8 +135,6 @@ function parseGoogleDataArray(matrix) {
         const shipping = parseFloat(row[4]) || 0;
         const status = row[5] ? String(row[5]).trim() : "ожидает оплаты";
         const comments = row[6] ? String(row[6]) : "";
-        
-        // Читаем скрытую техническую спецификацию из индекса 8 (Колонка I)
         const itemsRaw = row[8] ? String(row[8]) : "";
 
         if (customerName) newCustomers.add(customerName);
@@ -124,7 +144,6 @@ function parseGoogleDataArray(matrix) {
             try {
                 parsedItems = JSON.parse(itemsRaw);
             } catch (e) {
-                // Если ячейка пустая или повреждена, создаем резервную запись на основе текста из колонки H
                 const textFallback = row[7] ? String(row[7]) : "Товар";
                 parsedItems = [{ article: "CUSTOM", name: textFallback, price: total, cost: Math.round(total * 0.5), qty: 1 }];
             }
@@ -146,7 +165,6 @@ function parseGoogleDataArray(matrix) {
     if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
     if (typeof renderOrdersTable === 'function') renderOrdersTable();
 }
-
 function calculateProfit(order) {
     const totalCostOfItems = order.items.reduce((sum, item) => sum + (item.cost * item.qty), 0);
     const shipping = parseFloat(order.shipping) || 0;
@@ -164,31 +182,37 @@ function openOrderModal(index) {
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
         modalDateInput.value = (new Date(now - offset)).toISOString().slice(0, 16);
+        
         const deliveryDateObj = new Date(now.getTime() + (5 * 24 * 60 * 60 * 1000));
-        modalDeliveryDateInput.value = deliveryDateObj.toISOString().split('T')[0];
+        modalDeliveryDateInput.value = deliveryDateObj.toISOString().slice(0, 10);
         modalStatusSelect.value = "ожидает оплаты";
         modalCommentsTextarea.value = "";
         orderModal.tempItems = [];
     } else {
-               // Корректное преобразование даты документа для datetime-local
+        const order = orders[index];
+        modalOrderTitle.textContent = 'Заказ клиента #' + order.displayId;
+        modalCustomerInput.value = order.customer;
+        modalTotalInput.value = order.total;
+        modalShippingInput.value = order.shipping;
+        
         if (order.date) {
-            let dStr = String(order.date).trim();
-            if (dStr.includes(' ')) {
-                dStr = dStr.replace(' ', 'T'); // Заменяем пробел на T для корректного отображения в datetime-local
-            }
-            modalDateInput.value = dStr.slice(0, 16);
+            let dateStr = String(order.date).replace(' ', 'T');
+            if (dateStr.length > 16) dateStr = dateStr.slice(0, 16);
+            modalDateInput.value = dateStr;
         } else {
             modalDateInput.value = "";
         }
         
-        // Корректное преобразование плановой даты для обычного input type="date"
         if (order.deliveryDate) {
-            let delStr = String(order.deliveryDate).trim();
-            modalDeliveryDateInput.value = delStr.split(' ')[0].split('T')[0]; // Вырезаем только YYYY-MM-DD
+            let delivStr = String(order.deliveryDate).replace(' ', 'T').split('T')[0];
+            modalDeliveryDateInput.value = delivStr;
         } else {
             modalDeliveryDateInput.value = "";
         }
-
+        
+        modalStatusSelect.value = order.status;
+        modalCommentsTextarea.value = order.comments || "";
+        orderModal.tempItems = JSON.parse(JSON.stringify(order.items || []));
     }
     renderModalItemsTable();
     orderModal.style.display = "block";
@@ -231,24 +255,23 @@ async function handleSaveOrder(e) {
     } else if (source === 'google') {
         const url = googleUrlInput.value.trim();
         if (!url) { alert('Не указан URL шлюза Google!'); return; }
+        
         const actionType = currentEditingOrderId === null ? 'create' : 'update';
-        const payload = {
-            action: actionType,
-            index: currentEditingOrderId,
-            order: orderData
-        };
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            alert('Запрос отправлен в Google Таблицу! Данные обновятся в течение нескольких секунд.');
-            setTimeout(loadDataFromSource, 1500);
-        } catch (err) {
-            alert('Ошибка отправки: ' + err.message);
-        }
+        const oldScript = document.getElementById('google-mutation-script');
+        if (oldScript) oldScript.remove();
+
+        const separator = url.indexOf('?') !== -1 ? '&' : '?';
+        const mutationUrl = url + separator + 
+            'callback=handleGoogleMutationResponse' +
+            '&action=' + actionType +
+            '&index=' + currentEditingOrderId +
+            '&order=' + encodeURIComponent(JSON.stringify(orderData)) +
+            '&_ts=' + Date.now();
+
+        const script = document.createElement('script');
+        script.id = 'google-mutation-script';
+        script.src = mutationUrl;
+        document.body.appendChild(script);
         closeModal();
     }
 }
