@@ -55,7 +55,7 @@
     </div>
 
     <script>
-       // Используем публичные STUN-серверы Google
+// Используем публичные STUN-серверы Google
 const configuration = { iceServers: [{ urls: ['stun:://google.com', 'stun:://google.com'] }] };
 let pc = new RTCPeerConnection(configuration);
 let sendChannel;
@@ -64,21 +64,21 @@ let fileData = null;
 const statusEl = document.getElementById('status');
 const resultEl = document.getElementById('result');
 
-// Глобальный перехватчик ошибок, чтобы они выводились прямо на экран
+// Вывод ошибок прямо на экран
 window.onerror = function(message, source, lineno, colno, error) {
     statusEl.style.color = "red";
-    statusEl.textContent = "Критическая ошибка JS: " + message + " (Строка: " + lineno + ")";
+    statusEl.textContent = "Ошибка: " + message + " (Строка: " + lineno + ")";
     return false;
 };
 
-// Клик по текстовому полю автоматически копирует текст
+// Автоматическое копирование при клике
 document.querySelectorAll('textarea[readonly]').forEach(tx => {
     tx.addEventListener('click', function() {
         if (this.value) {
             this.select();
             try {
                 navigator.clipboard.writeText(this.value);
-                statusEl.textContent = "Код успешно скопирован в буфер обмена!";
+                statusEl.textContent = "Код успешно скопирован!";
             } catch (err) {
                 document.execCommand('copy');
                 statusEl.textContent = "Код скопирован!";
@@ -87,22 +87,17 @@ document.querySelectorAll('textarea[readonly]').forEach(tx => {
     });
 });
 
-// Выбор файла (ИСПРАВЛЕНО: берем первый файл из массива)
+// Выбор файла — ИСПРАВЛЕНО (берем первый элемент)
 document.getElementById('fileInput').addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
-        fileData = e.target.files[0]; // <--- ИСПРАВЛЕНО ЗДЕСЬ
+        fileData = e.target.files[0]; // <--- ТЕПЕРЬ ФАЙЛ ВЫБИРАЕТСЯ СТРОГО КОРРЕКТНО
         statusEl.style.color = "green";
-        statusEl.textContent = `Файл "${fileData.name}" выбран. Нажмите кнопку "1. Создать код подключения".`;
+        statusEl.textContent = `Файл "${fileData.name}" готов. Нажмите кнопку "1. Создать код подключения".`;
     }
 });
 
 // 1. Отправитель генерирует Предложение (Offer)
 document.getElementById('createOfferBtn').addEventListener('click', async () => {
-    if (!fileData) {
-        alert('Сначала выберите файл для отправки!');
-        return;
-    }
-    
     try {
         document.getElementById('createOfferBtn').disabled = true;
         statusEl.textContent = "Генерация кода...";
@@ -111,17 +106,20 @@ document.getElementById('createOfferBtn').addEventListener('click', async () => 
         sendChannel.binaryType = 'arraybuffer';
         setupSendChannel();
 
-        // Обновляем текстовое поле при каждом новом найденном сетевом кандидате
+        // Обновляем текстовое поле при каждом новом сетевом кандидате
         pc.onicecandidate = e => {
-            document.getElementById('localOffer').value = btoa(JSON.stringify(pc.localDescription));
-            statusEl.textContent = "Код создан и обновляется! Нажмите на поле ниже, чтобы скопировать его.";
+            if (pc.localDescription) {
+                document.getElementById('localOffer').value = btoa(JSON.stringify(pc.localDescription));
+                statusEl.textContent = "Код создан и обновляется! Кликните на поле ниже, чтобы скопировать.";
+            }
         };
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         
-        // Записываем начальную конфигурацию сразу, не дожидаясь ICE-кандидатов
+        // Показываем код сразу, не дожидаясь ICE-кандидатов
         document.getElementById('localOffer').value = btoa(JSON.stringify(pc.localDescription));
+        statusEl.textContent = "Код инициализирован! Скопируйте его.";
     } catch (err) {
         statusEl.style.color = "red";
         statusEl.textContent = "Ошибка при создании Offer: " + err.message;
@@ -134,7 +132,7 @@ document.getElementById('acceptOfferBtn').addEventListener('click', async () => 
     if (!offerText) return alert('Пожалуйста, вставьте код из Шага 1!');
 
     document.getElementById('acceptOfferBtn').disabled = true;
-    statusEl.textContent = "Принятие подключения и создание ответа...";
+    statusEl.textContent = "Создание ответного кода...";
 
     try {
         const offerDesc = new RTCSessionDescription(JSON.parse(atob(offerText)));
@@ -146,8 +144,10 @@ document.getElementById('acceptOfferBtn').addEventListener('click', async () => 
         };
 
         pc.onicecandidate = e => {
-            document.getElementById('localAnswer').value = btoa(JSON.stringify(pc.localDescription));
-            statusEl.textContent = "Ответный код создан! Скопируйте его и передайте Отправителю.";
+            if (pc.localDescription) {
+                document.getElementById('localAnswer').value = btoa(JSON.stringify(pc.localDescription));
+                statusEl.textContent = "Ответный код создан! Передайте его Отправителю.";
+            }
         };
 
         await pc.setRemoteDescription(offerDesc);
@@ -162,10 +162,10 @@ document.getElementById('acceptOfferBtn').addEventListener('click', async () => 
     }
 });
 
-// 3. Отправитель принимает Ответ и замыкает соединение
+// 3. Отправитель принимает Ответ
 document.getElementById('connectBtn').addEventListener('click', async () => {
     const answerText = document.getElementById('remoteAnswer').value.trim();
-    if (!answerText) return alert('Пожалуйста, вставьте ответный код из Шага 2!');
+    if (!answerText) return alert('Пожалуйста, вставьте ответный код!');
 
     statusEl.textContent = "Установка прямого соединения...";
     try {
@@ -179,17 +179,23 @@ document.getElementById('connectBtn').addEventListener('click', async () => {
 
 function setupSendChannel() {
     sendChannel.onopen = () => {
-        statusEl.textContent = "P2P Соединение открыто! Начинается отправка данных...";
-        
-        const reader = new FileReader();
-        reader.onload = e => {
-            // Передаем имя и размер, затем массив байтов
-            sendChannel.send(JSON.stringify({ name: fileData.name, size: fileData.size }));
-            sendChannel.send(e.target.result);
-            statusEl.textContent = `Файл "${fileData.name}" успешно передан напрямую получателю!`;
-        };
-        reader.readAsArrayBuffer(fileData);
+        statusEl.textContent = "P2P Соединение открыто! Начинается отправка...";
+        if (!fileData) {
+            statusEl.textContent = "Соединение установлено! Но файл не выбран. Выберите файл для мгновенной отправки.";
+            return;
+        }
+        sendFile();
     };
+}
+
+function sendFile() {
+    const reader = new FileReader();
+    reader.onload = e => {
+        sendChannel.send(JSON.stringify({ name: fileData.name, size: fileData.size }));
+        sendChannel.send(e.target.result);
+        statusEl.textContent = `Файл "${fileData.name}" успешно передан!`;
+    };
+    reader.readAsArrayBuffer(fileData);
 }
 
 function setupReceiveChannel(channel) {
@@ -204,14 +210,14 @@ function setupReceiveChannel(channel) {
             const a = document.createElement('a');
             a.href = url;
             a.download = meta.name;
-            a.textContent = `Нажмите сюда, чтобы сохранить файл: "${meta.name}"`;
+            a.textContent = `Сохранить полученный файл: "${meta.name}"`;
             a.style.display = 'block';
             a.style.fontSize = '16px';
             a.style.marginTop = '10px';
             
             resultEl.innerHTML = '';
             resultEl.appendChild(a);
-            statusEl.textContent = "Файл успешно получен по прямому каналу!";
+            statusEl.textContent = "Файл успешно получен!";
         }
     };
 }
