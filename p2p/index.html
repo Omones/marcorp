@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Обмен Файлами</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+        .box { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 20px; cursor: pointer; }
+        .hidden { display: none; }
+        input[type="text"] { width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #log { background: #f8f9fa; padding: 10px; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; }
+    </style>
+    <!-- Подключаем клиентскую библиотеку WebTorrent -->
+    <script src="webtorrent.js"></script>
+</head>
+<body>
+
+    <h1>P2P Файлообменник (WebTorrent)</h1>
+    <p><strong>Важно:</strong> Не закрывайте вкладку, пока получатель полностью не скачает файл!</p>
+
+    <!-- Секция отправки -->
+    <div class="box" id="dropzone">
+        <p>Нажмите, чтобы выбрать файл для раздачи</p>
+        <input type="file" id="fileInput" class="hidden">
+    </div>
+
+    <div id="shareSection" class="hidden">
+        <p>Отправьте эту ссылку получателю:</p>
+        <input type="text" id="shareLink" readonly onclick="this.select()">
+    </div>
+
+    <hr>
+
+    <!-- Секция получения (автоматически сработает, если в URL есть хеш) -->
+    <div id="downloadSection" class="hidden">
+        <h3>Обнаружен файл для скачивания</h3>
+        <button id="downloadBtn">Скачать файл</button>
+        <div id="fileResult"></div>
+    </div>
+
+    <h3>Лог процесса:</h3>
+    <div id="log">Инициализация клиента...</div>
+
+    <script>
+        const client = new WebTorrent();
+        const logEl = document.getElementById('log');
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const shareSection = document.getElementById('shareSection');
+        const shareLink = document.getElementById('shareLink');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const fileResult = document.getElementById('fileResult');
+
+        function log(message) {
+            logEl.textContent += '\n' + message;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        client.on('error', err => log('Ошибка клиента: ' + err.message));
+        log('Клиент WebTorrent готов.');
+
+        // Проверяем, есть ли инфо-хеш в URL (для скачивающего)
+        const infoHash = window.location.hash.substring(1);
+        if (infoHash) {
+            downloadSection.classList.remove('hidden');
+            log('Найдена ссылка на торрент: ' + infoHash);
+        }
+
+        // Клик по зоне загрузки
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        // Отправка (Раздача) файла
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            log(`Создание торрента для файла: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)...`);
+
+            // Запускаем сидирование файла через WebTorrent
+            client.seed(file, (torrent) => {
+                log('Файл успешно раздается!');
+                log('Инфо-хеш: ' + torrent.infoHash);
+
+                // Формируем прямую ссылку с хэшем в конце
+                const link = window.location.origin + window.location.pathname + '#' + torrent.infoHash;
+                shareLink.value = link;
+                shareSection.classList.remove('hidden');
+
+                // Мониторинг подключений
+                torrent.on('wire', (wire) => {
+                    log('Подключился новый пир (скачивающий)!');
+                });
+            });
+        });
+
+        // Получение (Скачивание) файла
+        downloadBtn.addEventListener('click', () => {
+            downloadBtn.disabled = true;
+            log('Подключение к пирам и поиск раздающего...');
+
+            // Скачиваем торрент по инфо-хешу из URL
+            client.add(infoHash, (torrent) => {
+                log('Торрент найден! Начинается скачивание...');
+
+                torrent.on('download', (bytes) => {
+                    log(`Прогресс: ${(torrent.progress * 100).toFixed(1)}% | Скорость: ${(client.downloadSpeed/1024/1024).toFixed(2)} MB/s`);
+                });
+
+                torrent.on('done', () => {
+                    log('Скачивание завершено успешно!');
+                    
+                    // Извлекаем файл из торрента и отдаем пользователю в браузере
+                    const file = torrent.files[0];
+                    file.getBlob((err, blob) => {
+                        if (err) return log('Ошибка сборки файла: ' + err.message);
+                        
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = file.name;
+                        a.textContent = `Сохранить файл "${file.name}" на устройство`;
+                        a.style.display = 'block';
+                        a.style.marginTop = '15px';
+                        
+                        fileResult.appendChild(a);
+                        log('Файл готов к сохранению.');
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
