@@ -25,23 +25,19 @@ const googleUrlInput = document.getElementById('google-url-input');
 const syncGoogleBtn = document.getElementById('sync-google-btn');
 
 document.addEventListener('DOMContentLoaded', () => {
-    initModalAddSelect();
+    if (typeof initModalAddSelect === 'function') initModalAddSelect();
     
     if (sessionStorage.getItem('scots_google_url')) {
         googleUrlInput.value = sessionStorage.getItem('scots_google_url');
     }
 
+    // Принудительно настраиваем видимость полей ввода при первой загрузке
+    handleToggleUiElements(dbSourceSelect.value);
     loadDataFromSource();
 
     dbSourceSelect.addEventListener('change', (e) => {
         const source = e.target.value;
-        if (source === 'google') {
-            googleUrlInput.style.display = 'inline-block';
-            syncGoogleBtn.style.display = 'inline-block';
-        } else {
-            googleUrlInput.style.display = 'none';
-            syncGoogleBtn.style.display = 'none';
-        }
+        handleToggleUiElements(source);
         loadDataFromSource();
     });
 
@@ -51,39 +47,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     syncGoogleBtn.addEventListener('click', loadDataFromSource);
     topCreateBtn.addEventListener('click', () => { openOrderModal(null); });
-    modalCloseBtn.addEventListener('click', closeModal);
-    modalCancelBtn.addEventListener('click', closeModal);
+    
+    if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+    if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeModal);
+    
     window.addEventListener('click', (e) => { if (e.target === orderModal) closeModal(); });
     modalForm.addEventListener('submit', handleSaveOrder);
-    modalAddItemBtn.addEventListener('click', addItemToModalTable);
-    modalShippingInput.addEventListener('input', recalculateModalTotal);
+    if (modalAddItemBtn) modalAddItemBtn.addEventListener('click', addItemToModalTable);
+    if (modalShippingInput) modalShippingInput.addEventListener('input', recalculateModalTotal);
 });
-window.handleGoogleJsonpResponse = function(resData) {
-    if (resData && resData.result === 'success') {
-        parseGoogleDataArray(resData.data);
-    } else {
-        alert('Ошибка Apps Script: ' + (resData ? resData.message : 'Неизвестная ошибка'));
-    }
-    const oldScript = document.getElementById('google-jsonp-script');
-    if (oldScript) oldScript.remove();
-};
 
-window.handleGoogleMutationResponse = function(resData) {
-    if (resData && resData.result === 'success') {
-        alert('Данные в Google Таблице успешно обновлены!');
-        fetchGoogleSpreadsheetData();
+// Вынесли переключение элементов интерфейса в отдельную безопасную функцию
+function handleToggleUiElements(source) {
+    if (source === 'google') {
+        googleUrlInput.style.display = 'inline-block';
+        syncGoogleBtn.style.display = 'inline-block';
     } else {
-        alert('Ошибка изменения в Google: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+        googleUrlInput.style.display = 'none';
+        syncGoogleBtn.style.display = 'none';
     }
-    const oldScript = document.getElementById('google-mutation-script');
-    if (oldScript) oldScript.remove();
-};
+}
 
 function loadDataFromSource() {
     const source = dbSourceSelect.value;
     if (source === 'local') {
-        orders = JSON.parse(localStorage.getItem('scots_orders')) || [];
-        customers = JSON.parse(localStorage.getItem('scots_customers')) || [];
+        try {
+            orders = JSON.parse(localStorage.getItem('scots_orders')) || [];
+            customers = JSON.parse(localStorage.getItem('scots_customers')) || [];
+        } catch (e) {
+            console.error("Ошибка чтения локальной БД:", e);
+            orders = [];
+            customers = [];
+        }
         if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
         if (typeof renderOrdersTable === 'function') renderOrdersTable();
     } else if (source === 'google') {
@@ -110,41 +105,12 @@ async function fetchGoogleSpreadsheetData() {
             alert('Ошибка Apps Script: ' + (resData ? resData.message : 'Неизвестная ошибка'));
         }
     } catch (err) {
-        alert('Не удалось выполнить запрос к скрипту Google. Проверьте URL или настройки CORS.');
+        alert('Не удалось выполнить запрос к скрипту Google. Проверьте правильность URL или настройки CORS веб-приложения.');
         console.error(err);
+        orders = [];
+        if (typeof renderOrdersTable === 'function') renderOrdersTable();
     }
 }
-
-// Обновление функции handleSaveOrder (часть отправки в Google)
-// Замените блок отправки скрипта в handleSaveOrder на:
-if (source === 'google') {
-    const url = googleUrlInput.value.trim();
-    if (!url) { alert('Не указан URL шлюза Google!'); return; }
-    
-    const actionType = currentEditingOrderId === null ? 'create' : 'update';
-    const separator = url.indexOf('?') !== -1 ? '&' : '?';
-    
-    const mutationUrl = url + separator + 
-        'action=' + actionType +
-        '&index=' + currentEditingOrderId +
-        '&order=' + encodeURIComponent(JSON.stringify(orderData));
-
-    try {
-        const response = await fetch(mutationUrl);
-        const resData = await response.json();
-        if (resData && resData.result === 'success') {
-            alert('Данные в Google Таблице успешно обновлены!');
-            fetchGoogleSpreadsheetData();
-        } else {
-            alert('Ошибка изменения в Google: ' + (resData ? resData.message : 'Неизвестная ошибка'));
-        }
-    } catch (err) {
-        alert('Ошибка сети при обмене с Google Таблицей.');
-        console.error(err);
-    }
-    closeModal();
-}
-
 
 function parseGoogleDataArray(matrix) {
     if (!matrix || matrix.length <= 1) {
@@ -197,10 +163,12 @@ function parseGoogleDataArray(matrix) {
     if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
     if (typeof renderOrdersTable === 'function') renderOrdersTable();
 }
+
 function calculateProfit(order) {
-    const totalCostOfItems = order.items.reduce((sum, item) => sum + (item.cost * item.qty), 0);
+    if (!order || !order.items) return 0;
+    const totalCostOfItems = order.items.reduce((sum, item) => sum + ((parseFloat(item.cost) || 0) * (parseInt(item.qty) || 0)), 0);
     const shipping = parseFloat(order.shipping) || 0;
-    return parseFloat(order.total) - (totalCostOfItems + shipping);
+    return (parseFloat(order.total) || 0) - (totalCostOfItems + shipping);
 }
 window.calculateProfit = calculateProfit;
 
@@ -222,7 +190,7 @@ function openOrderModal(index) {
         orderModal.tempItems = [];
     } else {
         const order = orders[index];
-        modalOrderTitle.textContent = 'Заказ клиента #' + order.displayId;
+        modalOrderTitle.textContent = 'Заказ клиента #' + (order.displayId || (index + 1));
         modalCustomerInput.value = order.customer;
         modalTotalInput.value = order.total;
         modalShippingInput.value = order.shipping;
@@ -246,7 +214,7 @@ function openOrderModal(index) {
         modalCommentsTextarea.value = order.comments || "";
         orderModal.tempItems = JSON.parse(JSON.stringify(order.items || []));
     }
-    renderModalItemsTable();
+    if (typeof renderModalItemsTable === 'function') renderModalItemsTable();
     orderModal.style.display = "block";
 }
 window.openOrderModal = openOrderModal;
@@ -274,103 +242,102 @@ async function handleSaveOrder(e) {
         if (!customers.includes(customer)) {
             customers.push(customer);
             localStorage.setItem('scots_customers', JSON.stringify(customers));
-            updateCustomersDatalist();
+            if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
         }
         if (currentEditingOrderId === null) {
             orders.push(orderData);
         } else {
             orders[currentEditingOrderId] = orderData;
-        }
-        localStorage.setItem('scots_orders', JSON.stringify(orders));
-        if (typeof renderOrdersTable === 'function') renderOrdersTable();
-        closeModal();
-    } else if (source === 'google') {
-        const url = googleUrlInput.value.trim();
-        if (!url) { alert('Не указан URL шлюза Google!'); return; }
-        
-        const actionType = currentEditingOrderId === null ? 'create' : 'update';
-        const oldScript = document.getElementById('google-mutation-script');
-        if (oldScript) oldScript.remove();
-
-        const separator = url.indexOf('?') !== -1 ? '&' : '?';
-        const mutationUrl = url + separator + 
-            'callback=handleGoogleMutationResponse' +
-            '&action=' + actionType +
-            '&index=' + currentEditingOrderId +
-            '&order=' + encodeURIComponent(JSON.stringify(orderData)) +
-            '&_ts=' + Date.now();
-
-        const script = document.createElement('script');
-        script.id = 'google-mutation-script';
-        script.src = mutationUrl;
-        document.body.appendChild(script);
-        closeModal();
-    }
+}
+localStorage.setItem('scots_orders', JSON.stringify(orders));
+if (typeof renderOrdersTable === 'function') renderOrdersTable();
+closeModal();
+} else if (source === 'google') {
+const url = googleUrlInput.value.trim();
+if (!url) { alert('Не указан URL шлюза Google!'); return; }
+const actionType = currentEditingOrderId === null ? 'create' : 'update';
+const separator = url.indexOf('?') !== -1 ? '&' : '?';
+const mutationUrl = url + separator +
+'action=' + actionType +
+'&index=' + currentEditingOrderId +
+'&order=' + encodeURIComponent(JSON.stringify(orderData));
+try {
+const response = await fetch(mutationUrl);
+const resData = await response.json();
+if (resData && resData.result === 'success') {
+alert('Данные в Google Таблице успешно обновлены!');
+fetchGoogleSpreadsheetData();
+} else {
+alert('Ошибка изменения в Google: ' + (resData ? resData.message : 'Неизвестная ошибка'));
+}
+} catch (err) {
+alert('Ошибка сети при обмене с Google Таблицей.');
+console.error(err);
+}
+closeModal();
+}
 }
 document.addEventListener('DOMContentLoaded', () => {
-    const topExportBtn = document.getElementById('top-export-btn');
-    const topImportBtn = document.getElementById('top-import-btn');
-    const dbFileInput = document.getElementById('database-file-input');
-
-    if (topExportBtn) {
-        topExportBtn.addEventListener('click', () => {
-            if (dbSourceSelect.value === 'google') {
-                alert('Экспорт локальных файлов недоступен в режиме Google Таблицы.');
-                return;
-            }
-            const backupData = {
-                orders: JSON.parse(localStorage.getItem('scots_orders')) || [],
-                customers: JSON.parse(localStorage.getItem('scots_customers')) || []
-            };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 4));
-            const downloadAnchor = document.createElement('a');
-            const dateStr = new Date().toISOString().slice(0, 10);
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `scots_db_backup_${dateStr}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        });
-    }
-
-    if (topImportBtn && dbFileInput) {
-        topImportBtn.addEventListener('click', () => {
-            if (dbSourceSelect.value === 'google') {
-                alert('Импорт локальных файлов недоступен в режиме Google Таблицы.');
-                return;
-            }
-            dbFileInput.click();
-        });
-
-        dbFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const parsedData = JSON.parse(event.target.result);
-                    if (!parsedData || (!Array.isArray(parsedData.orders) && !Array.isArray(parsedData.customers))) {
-                        throw new Error("Неверная структура JSON.");
-                    }
-                    if (confirm("Перезаписать локальную БД?")) {
-                        if (Array.isArray(parsedData.orders)) {
-                            orders = parsedData.orders;
-                            localStorage.setItem('scots_orders', JSON.stringify(orders));
-                        }
-                        if (Array.isArray(parsedData.customers)) {
-                            customers = parsedData.customers;
-                            localStorage.setItem('scots_customers', JSON.stringify(customers));
-                        }
-                        if (typeof renderOrdersTable === 'function') renderOrdersTable();
-                        if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
-                        alert("Успешно!");
-                    }
-                } catch (err) {
-                    alert("Ошибка: " + err.message);
-                }
-                dbFileInput.value = '';
-            };
-            reader.readAsText(file);
-        });
-    }
+const topExportBtn = document.getElementById('top-export-btn');
+const topImportBtn = document.getElementById('top-import-btn');
+const dbFileInput = document.getElementById('database-file-input');
+if (topExportBtn) {
+topExportBtn.addEventListener('click', () => {
+if (dbSourceSelect.value === 'google') {
+alert('Экспорт локальных файлов недоступен в режиме Google Таблицы.');
+return;
+}
+const backupData = {
+orders: JSON.parse(localStorage.getItem('scots_orders')) || [],
+customers: JSON.parse(localStorage.getItem('scots_customers')) || []
+};
+const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 4));
+const downloadAnchor = document.createElement('a');
+const dateStr = new Date().toISOString().slice(0, 10);
+downloadAnchor.setAttribute("href", dataStr);
+downloadAnchor.setAttribute("download", scots_db_backup_${dateStr}.json);
+document.body.appendChild(downloadAnchor);
+downloadAnchor.click();
+downloadAnchor.remove();
+});
+}
+if (topImportBtn && dbFileInput) {
+topImportBtn.addEventListener('click', () => {
+if (dbSourceSelect.value === 'google') {
+alert('Импорт локальных файлов недоступен в режиме Google Таблицы.');
+return;
+}
+dbFileInput.click();
+});
+dbFileInput.addEventListener('change', (e) => {
+const file = e.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = function(event) {
+try {
+const parsedData = JSON.parse(event.target.result);
+if (!parsedData || (!Array.isArray(parsedData.orders) && !Array.isArray(parsedData.customers))) {
+throw new Error("Неверная структура JSON.");
+}
+if (confirm("Перезаписать локальную БД?")) {
+if (Array.isArray(parsedData.orders)) {
+orders = parsedData.orders;
+localStorage.setItem('scots_orders', JSON.stringify(orders));
+}
+if (Array.isArray(parsedData.customers)) {
+customers = parsedData.customers;
+localStorage.setItem('scots_customers', JSON.stringify(customers));
+}
+if (typeof renderOrdersTable === 'function') renderOrdersTable();
+if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
+alert("Успешно!");
+}
+} catch (err) {
+alert("Ошибка: " + err.message);
+}
+dbFileInput.value = '';
+};
+reader.readAsText(file);
+});
+}
 });
