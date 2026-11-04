@@ -101,26 +101,35 @@ function parseGoogleDataArray(matrix) {
     }
     const newOrders = [];
     const newCustomers = new Set();
+    
     for (let i = 1; i < matrix.length; i++) {
         const row = matrix[i];
         if (!row || row.length < 3) continue;
-        const date = row[0] || "";
-        const deliveryDate = row[1] || "";
+
+        const date = row[0] ? String(row[0]) : "";
+        const deliveryDate = row[1] ? String(row[1]) : "";
         const customerName = row[2] ? String(row[2]).trim() : "";
         const total = parseFloat(row[3]) || 0;
         const shipping = parseFloat(row[4]) || 0;
-        const status = row[5] || "ожидает оплаты";
-        const comments = row[6] || "";
-        const itemsRaw = row[7] || "";
+        const status = row[5] ? String(row[5]).trim() : "ожидает оплаты";
+        const comments = row[6] ? String(row[6]) : "";
+        
+        // Читаем скрытую техническую спецификацию из индекса 8 (Колонка I)
+        const itemsRaw = row[8] ? String(row[8]) : "";
+
         if (customerName) newCustomers.add(customerName);
+
         let parsedItems = [];
         if (itemsRaw) {
             try {
                 parsedItems = JSON.parse(itemsRaw);
             } catch (e) {
-                parsedItems = [{ article: "CUSTOM", name: String(itemsRaw), price: total, cost: Math.round(total * 0.5), qty: 1 }];
+                // Если ячейка пустая или повреждена, создаем резервную запись на основе текста из колонки H
+                const textFallback = row[7] ? String(row[7]) : "Товар";
+                parsedItems = [{ article: "CUSTOM", name: textFallback, price: total, cost: Math.round(total * 0.5), qty: 1 }];
             }
         }
+
         newOrders.push({
             date: date,
             deliveryDate: deliveryDate,
@@ -137,6 +146,7 @@ function parseGoogleDataArray(matrix) {
     if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
     if (typeof renderOrdersTable === 'function') renderOrdersTable();
 }
+
 function calculateProfit(order) {
     const totalCostOfItems = order.items.reduce((sum, item) => sum + (item.cost * item.qty), 0);
     const shipping = parseFloat(order.shipping) || 0;
