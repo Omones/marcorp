@@ -24,8 +24,13 @@ function updateSummaryProfit() {
         .reduce((sum, order) => sum + calculateProfit(order), 0);
     totalProfitCounter.textContent = totalProfit + ' р.';
 }
-
 function updateInlineOrderField(index, field, value) {
+    const dbSourceSelect = document.getElementById('db-source-select');
+    if (dbSourceSelect && dbSourceSelect.value === 'google') {
+        alert('Прямое изменение полей в режиме Google Таблицы заблокировано.');
+        renderOrdersTable();
+        return;
+    }
     if (!orders[index]) return;
     if (field === 'total' || field === 'shipping') {
         orders[index][field] = parseFloat(value) || 0;
@@ -56,6 +61,9 @@ function renderOrdersTable() {
         updateSummaryProfit();
         return;
     }
+    const dbSourceSelect = document.getElementById('db-source-select');
+    const isGoogle = dbSourceSelect && dbSourceSelect.value === 'google';
+
     orders.forEach((order, index) => {
         const displayId = String(index + 1).padStart(3, '0');
         order.displayId = displayId; 
@@ -77,18 +85,17 @@ function renderOrdersTable() {
             imagesHtml += '<span style="color:#a0a0a0; font-style:italic; font-size:12px;">Пусто</span>';
         }
         imagesHtml += '</div>';
-        
         const profit = calculateProfit(order);
         const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
         const tr = document.createElement('tr');
         tr.innerHTML = '<td><strong>' + displayId + '</strong></td>' +
-            '<td><input type="datetime-local" style="width:100%; font-size:12px; padding:2px;" value="' + order.date + '" onchange="updateInlineOrderField(' + index + ', \'date\', this.value)"></td>' +
-            '<td><input type="date" style="width:100%; font-size:12px; padding:2px;" value="' + (order.deliveryDate || '') + '" onchange="updateInlineOrderField(' + index + ', \'deliveryDate\', this.value)"></td>' +
-            '<td><input type="text" style="width:100%; padding:2px;" value="' + order.customer + '" onchange="updateInlineOrderField(' + index + ', \'customer\', this.value)"></td>' +
+            '<td><input type="datetime-local" style="width:100%; font-size:12px; padding:2px;" value="' + order.date + '" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'date\', this.value)"></td>' +
+            '<td><input type="date" style="width:100%; font-size:12px; padding:2px;" value="' + (order.deliveryDate || '') + '" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'deliveryDate\', this.value)"></td>' +
+            '<td><input type="text" style="width:100%; padding:2px;" value="' + order.customer + '" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'customer\', this.value)"></td>' +
             '<td>' + imagesHtml + '</td>' +
-            '<td><input type="number" style="width:100%; font-weight:bold; padding:2px; text-align:right;" value="' + order.total + '" onchange="updateInlineOrderField(' + index + ', \'total\', this.value)"></td>' +
+            '<td><input type="number" style="width:100%; font-weight:bold; padding:2px; text-align:right;" value="' + order.total + '" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'total\', this.value)"></td>' +
             '<td>' +
-                '<select style="width:100%; padding:2px; font-size:12px;" onchange="updateInlineOrderField(' + index + ', \'status\', this.value); this.className=\'badge \' + getStatusBadgeClass(this.value)">' +
+                '<select style="width:100%; padding:2px; font-size:12px;" ' + (isGoogle ? 'disabled' : '') + ' onchange="updateInlineOrderField(' + index + ', \'status\', this.value); this.className=\'badge \' + getStatusBadgeClass(this.value)">' +
                     '<option value="ожидает оплаты"' + (order.status === 'ожидает оплаты' ? ' selected' : '') + '>ожидает оплаты</option>' +
                     '<option value="оплачен, оформляется"' + (order.status === 'оплачен, оформляется' ? ' selected' : '') + '>оплачен, оформляется</option>' +
                     '<option value="ожидаем поставку"' + (order.status === 'ожидаем поставку' ? ' selected' : '') + '>ожидаем поставку</option>' +
@@ -98,8 +105,8 @@ function renderOrdersTable() {
             '</td>' +
             '<td id="profit-td-' + index + '" class="' + profitClass + '">' + profit + ' р.</td>' +
             '<td style="white-space:nowrap; text-align:center;">' +
-            '<button class="btn-icon" title="Редактировать / Открыть" onclick="openOrderModal(' + index + ')"><img src="images/pencil.png"></img></button>' +
-            '<button class="btn-icon" title="Удалить заказ" onclick="deleteOrder(' + index + ')">🗑️</button>' +
+            '<button class="btn-icon" title="Редактировать / Открыть" ' + (isGoogle ? 'disabled style="opacity:0.3; cursor:default;"' : '') + ' onclick="openOrderModal(' + index + ')"><img src="images/pencil.png"></img></button>' +
+            '<button class="btn-icon" title="Удалить заказ" ' + (isGoogle ? 'disabled style="opacity:0.3; cursor:default;"' : '') + ' onclick="deleteOrder(' + index + ')">🗑️</button>' +
             '</td>';
         const selectEl = tr.querySelector('select');
         if (selectEl) { selectEl.className = 'badge ' + getStatusBadgeClass(order.status); }
@@ -110,6 +117,8 @@ function renderOrdersTable() {
 window.renderOrdersTable = renderOrdersTable;
 
 function deleteOrder(index) {
+    const dbSourceSelect = document.getElementById('db-source-select');
+    if (dbSourceSelect && dbSourceSelect.value === 'google') return;
     if (confirm('Удалить выбранный документ из журнала?')) {
         orders.splice(index, 1);
         localStorage.setItem('scots_orders', JSON.stringify(orders));
