@@ -1,463 +1,547 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мультимедиа Чат</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #131417; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        
-        /* Экран авторизации / ввода цифр */
-        .auth-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #131417; display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.3s ease; }
-        .auth-card { background: #1f2026; padding: 30px; border-radius: 16px; border: 1px solid #2d2e35; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .auth-card h2 { margin-bottom: 15px; font-size: 1.4rem; color: #fff; }
-        .auth-card p { font-size: 0.9rem; color: #a1a1aa; margin-bottom: 20px; line-height: 1.4; }
-        .auth-card input[type="text"] { width: 100%; background: #131417; border: 1px solid #2d2e35; padding: 12px; border-radius: 8px; color: #fff; font-size: 1.1rem; letter-spacing: 2px; outline: none; text-align: center; margin-bottom: 15px; }
-        .auth-card input:focus { border-color: #82061a; }
-        
-        /* Главный интерфейс чата */
-        .chat-box { width: 100vw; height: 100vh; display: flex; flex-direction: column; background: #18191d; filter: blur(10px); pointer-events: none; transition: filter 0.3s ease; }
-        .chat-box.active { filter: blur(0); pointer-events: auto; }
-        
-        .chat-header { background: #1f2026; padding: 15px 20px; font-weight: 700; font-size: 1.1rem; border-bottom: 1px solid #2d2e35; display: flex; justify-content: space-between; align-items: center; }
-        .header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-        .header-row { display: flex; align-items: center; gap: 15px; }
-        .user-badge { font-size: 0.85rem; color: #a1a1aa; background: #2d2e35; padding: 4px 10px; border-radius: 12px; }
-        .online-badge { font-size: 0.85rem; color: #22c55e; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; }
-        .online-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; }
-        .online-users-list { font-size: 0.75rem; color: #a1a1aa; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg-block { max-width: 75%; padding: 10px 14px; border-radius: 14px; background: #2d2e35; align-self: flex-start; line-height: 1.4; word-break: break-word; }
-        .msg-block.my-msg { background: #82061a; align-self: flex-end; }
-        .msg-meta { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 5px; font-weight: 600; display: flex; justify-content: space-between; gap: 15px; }
-        .msg-text { font-size: 0.95rem; white-space: pre-wrap; }
-        
-        .tts-container { display: flex; align-items: center; gap: 10px; margin-top: 5px; background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.2); }
-        .tts-btn { background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 4px; }
-        .tts-btn:hover { background: #16a34a; }
-        .chat-input-form { display: flex; padding: 15px 20px; background: #1f2026; border-top: 1px solid #2d2e35; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .input-row { display: flex; flex: 1; gap: 10px; align-items: center; width: 100%; }
-        .chat-input-form input[type="text"] { flex: 1; background: #131417; border: 1px solid #2d2e35; padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
-        .chat-input-form input:focus { border-color: #82061a; }
-        
-        .btn { background: #2d2e35; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; display: flex; align-items: center; justify-content: center; height: 46px; }
-        .btn:hover { background: #3e3f46; }
-        .btn-main { background: #82061a; }
-        .btn-main:hover { background: #b90f2d; }
-        .btn-active { background: #22c55e !important; animation: pulse 1s infinite; }
-        .file-label { cursor: pointer; }
-        #fileInput { display: none; }
-        
-        /* Компактный аудиоплеер без полосы прокрутки */
-        audio { width: 110px; height: 36px; margin-top: 5px; display: block; background: #2d2e35; border-radius: 8px; }
-        audio::-webkit-media-controls-timeline,
-        audio::-webkit-media-controls-current-time-display,
-        audio::-webkit-media-controls-time-remaining-display {
-            display: none !important;
-        }
-        
-        .img-preview { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; display: block; }
-        .file-download { color: #3b82f6; text-decoration: underline; font-size: 0.9rem; margin-top: 5px; display: block; }
-        .timer-container { width: 36px; height: 36px; position: relative; display: flex; align-items: center; justify-content: center; shrink-0; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .timer-container.visible { opacity: 1; }
-        .timer-svg { transform: rotate(-90deg); width: 36px; height: 36px; }
-        .timer-svg circle { fill: none; stroke-width: 3.5; }
-        .timer-bg { stroke: #2d2e35; }
-        .timer-progress { stroke: #82061a; stroke-linecap: round; }
-        .timer-text { position: absolute; font-size: 0.75rem; font-weight: bold; color: #a1a1aa; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мультимедиа Чат</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background-color: #131417; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+
+  /* Экран авторизации */
+  .auth-overlay { position: fixed; inset: 0; background: #131417; display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.25s ease; padding: 20px; }
+  .auth-overlay.hidden { opacity: 0; pointer-events: none; }
+  .auth-card { background: #1f2026; padding: 30px; border-radius: 16px; border: 1px solid #2d2e35; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+  .auth-card h2 { margin-bottom: 12px; font-size: 1.4rem; color: #fff; }
+  .auth-card p { font-size: 0.9rem; color: #a1a1aa; margin-bottom: 20px; line-height: 1.4; }
+  .auth-card input[type="text"] { width: 100%; background: #131417; border: 1px solid #2d2e35; padding: 12px; border-radius: 8px; color: #fff; font-size: 1.2rem; letter-spacing: 4px; outline: none; text-align: center; margin-bottom: 15px; font-family: ui-monospace, monospace; }
+  .auth-card input:focus { border-color: #82061a; }
+  .auth-error { color: #f87171; font-size: 0.85rem; margin-bottom: 12px; min-height: 1.2em; }
+  .auth-hint { color: #71717a; font-size: 0.75rem; margin-top: 14px; line-height: 1.4; }
+
+  /* Главный интерфейс */
+  .chat-box { width: 100vw; height: 100vh; display: flex; flex-direction: column; background: #18191d; filter: blur(10px); pointer-events: none; transition: filter 0.3s ease; }
+  .chat-box.active { filter: blur(0); pointer-events: auto; }
+
+  .chat-header { background: #1f2026; padding: 15px 20px; font-weight: 700; font-size: 1.1rem; border-bottom: 1px solid #2d2e35; display: flex; justify-content: space-between; align-items: center; }
+  .header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .header-row { display: flex; align-items: center; gap: 15px; }
+  .user-badge { font-size: 0.85rem; color: #a1a1aa; background: #2d2e35; padding: 4px 10px; border-radius: 12px; }
+  .online-badge { font-size: 0.85rem; color: #22c55e; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; }
+  .online-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; }
+  .online-users-list { font-size: 0.75rem; color: #a1a1aa; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .logout-btn { background: transparent; border: 1px solid #3f3f46; color: #a1a1aa; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+  .logout-btn:hover { background: #2d2e35; color: #fff; }
+
+  .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .msg-block { max-width: 75%; padding: 10px 14px; border-radius: 14px; background: #2d2e35; align-self: flex-start; line-height: 1.4; word-break: break-word; }
+  .msg-block.my-msg { background: #82061a; align-self: flex-end; }
+  .msg-meta { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 5px; font-weight: 600; display: flex; justify-content: space-between; gap: 15px; }
+  .msg-text { font-size: 0.95rem; white-space: pre-wrap; }
+
+  .tts-container { display: flex; align-items: center; gap: 10px; margin-top: 5px; background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.2); }
+  .tts-btn { background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+  .tts-btn:hover { background: #16a34a; }
+
+  .chat-input-form { display: flex; padding: 15px 20px; background: #1f2026; border-top: 1px solid #2d2e35; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .input-row { display: flex; flex: 1; gap: 10px; align-items: center; width: 100%; }
+  .chat-input-form input[type="text"] { flex: 1; background: #131417; border: 1px solid #2d2e35; padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
+  .chat-input-form input:focus { border-color: #82061a; }
+
+  .btn { background: #2d2e35; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; display: flex; align-items: center; justify-content: center; height: 46px; }
+  .btn:hover { background: #3e3f46; }
+  .btn-main { background: #82061a; }
+  .btn-main:hover { background: #b90f2d; }
+  .btn-main:disabled { background: #4c1d24; cursor: wait; opacity: 0.7; }
+  .btn-active { background: #22c55e !important; animation: pulse 1s infinite; }
+  .file-label { cursor: pointer; }
+  #fileInput { display: none; }
+
+  audio { width: 110px; height: 36px; margin-top: 5px; display: block; background: #2d2e35; border-radius: 8px; }
+  audio::-webkit-media-controls-timeline,
+  audio::-webkit-media-controls-current-time-display,
+  audio::-webkit-media-controls-time-remaining-display { display: none !important; }
+
+  .img-preview { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; display: block; }
+  .file-download { color: #3b82f6; text-decoration: underline; font-size: 0.9rem; margin-top: 5px; display: block; }
+  .timer-container { width: 36px; height: 36px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .timer-container.visible { opacity: 1; }
+  .timer-svg { transform: rotate(-90deg); width: 36px; height: 36px; }
+  .timer-svg circle { fill: none; stroke-width: 3.5; }
+  .timer-bg { stroke: #2d2e35; }
+  .timer-progress { stroke: #82061a; stroke-linecap: round; }
+  .timer-text { position: absolute; font-size: 0.75rem; font-weight: bold; color: #a1a1aa; }
+  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+</style>
 </head>
 <body>
 
-<!-- Экран авторизации (если цифровой ключ не передан в ссылке) -->
+<!-- Экран авторизации -->
 <div class="auth-overlay" id="authOverlay">
-    <div class="auth-card">
-        <h2>Вход в канал</h2>
-        <p>Введите цифровой ключ авторизации, чтобы восстановить адрес макроса чата.</p>
-        <input type="text" id="digitsInput" placeholder="Введите ваш цифровой ключ..." autocomplete="off">
-        <button type="button" class="btn btn-main" style="width: 100%;" id="authBtn">Активировать</button>
-    </div>
+  <div class="auth-card">
+    <h2>Вход в канал</h2>
+    <p>Введите цифровой ключ авторизации, чтобы подключиться к чату.</p>
+    <input type="text" id="digitsInput" placeholder="9 цифр" autocomplete="off" inputmode="numeric" maxlength="20">
+    <div class="auth-error" id="authError"></div>
+    <button type="button" class="btn btn-main" style="width: 100%;" id="authBtn">Активировать</button>
+    <div class="auth-hint">Ключ — 9 цифр. Можно также открыть страницу с хэшем: <code>.../chat.html#123456789</code></div>
+  </div>
 </div>
 
 <!-- Блок чата -->
 <div class="chat-box" id="chatBox">
-    <div class="chat-header">
-        <span>Мультимедиа Канал</span>
-        <div class="header-meta">
-            <div class="header-row">
-                <div class="online-badge"><span class="online-dot"></span>Онлайн: <span id="onlineCount">1</span></div>
-                <span class="user-badge" id="myBadge">...</span>
-            </div>
-            <div class="online-users-list" id="onlineUsersList">В сети: ...</div>
-        </div>
+  <div class="chat-header">
+    <span>Мультимедиа Канал</span>
+    <div class="header-meta">
+      <div class="header-row">
+        <div class="online-badge"><span class="online-dot"></span>Онлайн: <span id="onlineCount">1</span></div>
+        <span class="user-badge" id="myBadge">...</span>
+        <button type="button" class="logout-btn" id="logoutBtn">Выйти</button>
+      </div>
+      <div class="online-users-list" id="onlineUsersList">В сети: ...</div>
     </div>
-    <div class="chat-messages" id="chatMessages">Загрузка сообщений...</div>
-    
-    <form class="chat-input-form" id="chatForm">
-        <div class="input-row">
-            <div class="timer-container" id="sendTimerContainer" title="Отправка сообщения...">
-                <svg class="timer-svg" viewBox="0 0 36 36">
-                    <circle class="timer-bg" cx="18" cy="18" r="16"></circle>
-                    <circle class="timer-progress" id="timerCircle" cx="18" cy="18" r="16" stroke-dasharray="100.53" stroke-dashoffset="0"></circle>
-                </svg>
-                <div class="timer-text" id="timerText">6</div>
-            </div>
-            <input type="text" id="messageInput" placeholder="Напишите сообщение..." autocomplete="off" maxlength="500">
-            <label class="btn file-label" title="Отправить файл (до 30КБ)">
-                📎 <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
-            </label>
-            <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
-            <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (15 сек)">🎙️ Аудио</button>
-            <button type="submit" class="btn btn-main">Отправить</button>
-        </div>
-    </form>
+  </div>
+  <div class="chat-messages" id="chatMessages">Загрузка сообщений...</div>
+
+  <form class="chat-input-form" id="chatForm">
+    <div class="input-row">
+      <div class="timer-container" id="sendTimerContainer" title="Отправка сообщения...">
+        <svg class="timer-svg" viewBox="0 0 36 36">
+          <circle class="timer-bg" cx="18" cy="18" r="16"></circle>
+          <circle class="timer-progress" id="timerCircle" cx="18" cy="18" r="16" stroke-dasharray="100.53" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="timer-text" id="timerText">6</div>
+      </div>
+      <input type="text" id="messageInput" placeholder="Напишите сообщение..." autocomplete="off" maxlength="500">
+      <label class="btn file-label" title="Отправить файл (до 30КБ)">
+        📎 <input type="file" id="fileInput" accept="image/*,text/plain,application/pdf">
+      </label>
+      <button type="button" class="btn" id="voiceRecBtn" title="Голос в Текст + Озвучка">🎤 Робот</button>
+      <button type="button" class="btn" id="audioBtn" title="Запись обычного голосового (15 сек)">🎙️ Аудио</button>
+      <button type="submit" class="btn btn-main">Отправить</button>
+    </div>
+  </form>
 </div>
 
 <script>
-    let currentGoogleUrl = "";
+/* =====================================================================
+   ГЛОБАЛЬНОЕ СОСТОЯНИЕ
+   ===================================================================== */
+let currentGoogleUrl = "";
+let pollIntervalId = null;
+let lastHandledMessageCount = 0;
+const playedTtsMessages = new Set();
 
-    const authOverlay = document.getElementById('authOverlay');
-    const chatBox = document.getElementById('chatBox');
-    const digitsInput = document.getElementById('digitsInput');
-    const authBtn = document.getElementById('authBtn');
+let mediaRecorder, audioChunks = [];
+let isRecording = false, isRecognizing = false;
+let audioTimeoutId = null, countdownIntervalId = null, robotIntervalId = null;
 
-    const chatMessages = document.getElementById('chatMessages');
-    const chatForm = document.getElementById('chatForm');
-    const messageInput = document.getElementById('messageInput');
-    const myBadge = document.getElementById('myBadge');
-    const onlineCount = document.getElementById('onlineCount');
-    const onlineUsersList = document.getElementById('onlineUsersList');
-    const sendTimerContainer = document.getElementById('sendTimerContainer');
-    const timerCircle = document.getElementById('timerCircle');
-    const timerText = document.getElementById('timerText');
-    const audioBtn = document.getElementById('audioBtn');
-    const voiceRecBtn = document.getElementById('voiceRecBtn');
-    const fileInput = document.getElementById('fileInput');
+/* =====================================================================
+   DOM
+   ===================================================================== */
+const authOverlay = document.getElementById('authOverlay');
+const authError = document.getElementById('authError');
+const chatBox = document.getElementById('chatBox');
+const digitsInput = document.getElementById('digitsInput');
+const authBtn = document.getElementById('authBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
-    const circleLength = 2 * Math.PI * 16; 
-    let lastHandledMessageCount = 0;
-    let playedTtsMessages = new Set();
+const chatMessages = document.getElementById('chatMessages');
+const chatForm = document.getElementById('chatForm');
+const messageInput = document.getElementById('messageInput');
+const myBadge = document.getElementById('myBadge');
+const onlineCount = document.getElementById('onlineCount');
+const onlineUsersList = document.getElementById('onlineUsersList');
+const sendTimerContainer = document.getElementById('sendTimerContainer');
+const timerCircle = document.getElementById('timerCircle');
+const timerText = document.getElementById('timerText');
+const audioBtn = document.getElementById('audioBtn');
+const voiceRecBtn = document.getElementById('voiceRecBtn');
+const fileInput = document.getElementById('fileInput');
 
-    let mediaRecorder;
-    let audioChunks = [];
-    let isRecording = false;
-    let isRecognizing = false;
-    let audioTimeoutId = null;
-    let countdownIntervalId = null;
-    let robotIntervalId = null;
+const circleLength = 2 * Math.PI * 16;
 
-    function generatePureNick() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        let result = '';
-        for (let i = 0; i < 3; i++) { result += chars.charAt(Math.floor(Math.random() * chars.length)); }
-        return result;
-    }
+/* =====================================================================
+   ИМЯ ПОЛЬЗОВАТЕЛЯ (храним в sessionStorage — не в коде)
+   ===================================================================== */
+function generatePureNick() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '';
+  for (let i = 0; i < 3; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+  return result;
+}
+if (!sessionStorage.getItem('chat_user_pure_name')) {
+  sessionStorage.setItem('chat_user_pure_name', generatePureNick());
+}
+const myName = sessionStorage.getItem('chat_user_pure_name');
+myBadge.textContent = myName;
 
-    if (!sessionStorage.getItem('chat_user_pure_name')) {
-        sessionStorage.setItem('chat_user_pure_name', generatePureNick());
-    }
-    const myName = sessionStorage.getItem('chat_user_pure_name');
-    myBadge.textContent = myName;
+/* =====================================================================
+   УТИЛИТЫ
+   ===================================================================== */
+function cleanHTML(text) {
+  return String(text).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c] || c));
+}
+function formatToTimeOnly(ts) {
+  if (!ts) return '';
+  const m = ts.match(/\d{2}:\d{2}:\d{2}/);
+  return m ? m[0] : ts;
+}
 
-    function cleanHTML(text) {
-        return String(text).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char] || char));
-    }
+function playNotificationSound() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 0.35);
+  } catch (e) { /* silent */ }
+}
 
-    function playNotificationSound() {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.08);
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.35);
-        } catch (e) { console.error(e); }
-    }
+function speakText(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ru-RU'; u.rate = 1.0;
+  window.speechSynthesis.speak(u);
+}
 
-    function speakText(text) {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ru-RU';
-            utterance.rate = 1.0;
-            window.speechSynthesis.speak(utterance);
+/* =====================================================================
+   АКТИВАЦИЯ КАНАЛА
+   ===================================================================== */
+function buildUrlFromDigits(digitsStr) {
+  const d = String(digitsStr).replace(/\D/g, '');
+  if (d.length !== 9) return null;
+  const t0 = "AKfycbz" + d[0];
+  const t1 = "Ujv" + d[1];
+  const t2 = "a" + d[2];
+  const t3 = "iK" + d[3] + d[4];
+  const t4 = "ZoPLsPdwFGEoO_qhGHvkwtGN" + d[5];
+  const t5 = "zmgHAeGCVfPyzjlfX" + d[6];
+  const t6 = "CeII" + d[7] + d[8] + "FkuO";
+  const token = t0 + t1 + t2 + t3 + t4 + t5 + t6;
+  return "https://script.google.com/macros/s/" + token + "/exec";
+}
+
+function showAuthError(msg) {
+  authError.textContent = msg;
+}
+function clearAuthError() { authError.textContent = ''; }
+
+function showAuth() {
+  authOverlay.classList.remove('hidden');
+  chatBox.classList.remove('active');
+}
+function hideAuth() {
+  authOverlay.classList.add('hidden');
+  chatBox.classList.add('active');
+}
+
+async function activate(digitsStr) {
+  clearAuthError();
+  const url = buildUrlFromDigits(digitsStr);
+  if (!url) { showAuthError('Ключ должен содержать ровно 9 цифр.'); return; }
+
+  authBtn.disabled = true;
+  authBtn.textContent = 'Подключение...';
+
+  // останавливаем прошлый опрос, если был
+  if (pollIntervalId) { clearInterval(pollIntervalId); pollIntervalId = null; }
+  lastHandledMessageCount = 0;
+  playedTtsMessages.clear();
+  chatMessages.innerHTML = 'Загрузка сообщений...';
+
+  try {
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error('Неожиданный формат ответа');
+
+    // сохраняем только после успешного первого запроса
+    currentGoogleUrl = url;
+    sessionStorage.setItem('chat_puzzle_digits', String(digitsStr).replace(/\D/g, ''));
+
+    // очищаем хэш из URL, чтобы не светить ключ в истории (ключ и так в sessionStorage)
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+
+    hideAuth();
+    lastHandledMessageCount = 0;
+    await fetchMessages(false);
+
+    pollIntervalId = setInterval(() => fetchMessages(true), 5000);
+  } catch (err) {
+    console.error('activate:', err);
+    showAuthError('Не удалось подключиться. Проверьте ключ и попробуйте снова.');
+    currentGoogleUrl = "";
+    // не оставляем «мёртвый» интервал
+    if (pollIntervalId) { clearInterval(pollIntervalId); pollIntervalId = null; }
+    // чистим хэш, чтобы перезагрузка не зациклилась на неверном ключе
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    showAuth();
+  } finally {
+    authBtn.disabled = false;
+    authBtn.textContent = 'Активировать';
+  }
+}
+
+/* =====================================================================
+   ОПРОС СООБЩЕНИЙ
+   ===================================================================== */
+async function fetchMessages(isBackground = true) {
+  if (!currentGoogleUrl) return;
+  try {
+    const res = await fetch(currentGoogleUrl, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const list = await res.json();
+    if (!Array.isArray(list)) throw new Error('bad format');
+
+    const uniqueUsers = new Set([myName]);
+    list.forEach(item => {
+      if (item.name && String(item.name).trim() && item.name !== 'undefined') uniqueUsers.add(String(item.name).trim());
+    });
+    onlineCount.textContent = uniqueUsers.size;
+    onlineUsersList.textContent = 'В сети: ' + Array.from(uniqueUsers).join(', ');
+
+    if (list.length === lastHandledMessageCount) return;
+
+    let newFromOthers = false;
+    if (lastHandledMessageCount === 0) chatMessages.innerHTML = '';
+
+    for (let i = lastHandledMessageCount; i < list.length; i++) {
+      const item = list[i];
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('msg-block');
+      if (item.name === myName) msgDiv.classList.add('my-msg');
+
+      if (lastHandledMessageCount > 0 && item.name !== myName) newFromOthers = true;
+
+      let contentHtml = `<div class="msg-text">${cleanHTML(item.message)}</div>`;
+
+      if (item.type === 'audio' && item.fileData) {
+        contentHtml = `<audio src="${item.fileData}" controls></audio>`;
+      } else if (item.type === 'tts' && item.message) {
+        contentHtml = `
+          <div class="msg-text" style="font-style:italic; color:#22c55e;">📢 Текст для робота:</div>
+          <div class="msg-text">"${cleanHTML(item.message)}"</div>
+          <div class="tts-container">
+            <button class="tts-btn" data-tts="${cleanHTML(item.message).replace(/"/g, '&quot;')}">▶️ Озвучить</button>
+          </div>`;
+        const msgKey = `${item.timestamp}_${item.message}_${i}`;
+        if (!playedTtsMessages.has(msgKey)) {
+          playedTtsMessages.add(msgKey);
+          if (isBackground && item.name !== myName) speakText(item.message);
         }
-    }
-    
-    function formatToTimeOnly(timestampStr) {
-        if (!timestampStr) return "";
-        const timeMatch = timestampStr.match(/\d{2}:\d{2}:\d{2}/);
-        if (timeMatch) return timeMatch[0];
-        return timestampStr;
-    }
-
-    async function fetchMessages(isBackground = true) {
-        try {
-            const res = await fetch(currentGoogleUrl);
-            if (!res.ok) throw new Error("Неверный ответ от Google API");
-            const list = await res.json();
-            
-            const uniqueUsers = new Set();
-            uniqueUsers.add(myName);
-            
-            list.forEach(item => { 
-                if (item.name && item.name.trim() !== "" && item.name !== "undefined") {
-                    uniqueUsers.add(item.name.trim()); 
-                }
-            });
-            
-            onlineCount.textContent = uniqueUsers.size;
-            onlineUsersList.textContent = "В сети: " + Array.from(uniqueUsers).join(', ');
-
-            if (list.length === lastHandledMessageCount) return;
-
-            let strictlyNewMessagesArrived = false;
-            if (lastHandledMessageCount === 0) chatMessages.innerHTML = '';
-
-            for (let i = lastHandledMessageCount; i < list.length; i++) {
-                const item = list[i];
-                const msgDiv = document.createElement('div');
-                msgDiv.classList.add('msg-block');
-                if (item.name === myName) msgDiv.classList.add('my-msg');
-
-                if (lastHandledMessageCount > 0 && item.name !== myName) strictlyNewMessagesArrived = true;
-
-                let contentHtml = `<div class="msg-text">${cleanHTML(item.message)}</div>`;
-
-                if (item.type === 'audio' && item.fileData) {
-                    contentHtml = `<audio src="${item.fileData}" controls></audio>`;
-                } else if (item.type === 'tts' && item.message) {
-                    contentHtml = `
-                        <div class="msg-text" style="font-style:italic; color:#22c55e;">📢 Текст для робота:</div>
-                        <div class="msg-text">"${cleanHTML(item.message)}"</div>
-                        <div class="tts-container">
-                            <button class="tts-btn" onclick="speakText('${cleanHTML(item.message).replace(/'/g, "\\\\'").replace(/"/g, '\\"')}')">▶️ Озвучить</button>
-                        </div>
-                    `;
-                    const msgKey = `${item.timestamp}_${item.message}_${i}`;
-                    if (!playedTtsMessages.has(msgKey)) {
-                        playedTtsMessages.add(msgKey);
-                        if (isBackground && item.name !== myName) speakText(item.message);
-                    }
-                } else if (item.type === 'file' && item.fileData) {
-                    if (item.fileData.startsWith('data:image')) {
-                        contentHtml = `<img class="img-preview" src="${item.fileData}" />`;
-                    } else {
-                        contentHtml = `<a class="file-download" href="${item.fileData}" download="file">💾 Скачать файл</a>`;
-                    }
-                }
-
-                const cleanTime = formatToTimeOnly(item.timestamp);
-                msgDiv.innerHTML = `<div class="msg-meta"><span>${cleanHTML(item.name)}</span><span>${cleanHTML(cleanTime)}</span></div>${contentHtml}`;
-                chatMessages.appendChild(msgDiv);
-            }
-            
-            if (isBackground && strictlyNewMessagesArrived) playNotificationSound();
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            lastHandledMessageCount = list.length;
-            
-            authOverlay.style.opacity = '0';
-            setTimeout(() => authOverlay.style.display = 'none', 300);
-            chatBox.classList.add('active');
-            
-        } catch (err) { 
-            console.error(err);
-            alert("Не удалось активировать канал. Проверьте правильность цифрового ключа.");
-            sessionStorage.removeItem('chat_puzzle_digits');
-            location.reload();
+      } else if (item.type === 'file' && item.fileData) {
+        if (item.fileData.startsWith('data:image')) {
+          contentHtml = `<img class="img-preview" src="${item.fileData}" alt="">`;
+        } else {
+          contentHtml = `<a class="file-download" href="${item.fileData}" download="${cleanHTML(item.message)}">💾 Скачать ${cleanHTML(item.message)}</a>`;
         }
+      }
+
+      const cleanTime = formatToTimeOnly(item.timestamp);
+      msgDiv.innerHTML = `<div class="msg-meta"><span>${cleanHTML(item.name)}</span><span>${cleanHTML(cleanTime)}</span></div>${contentHtml}`;
+      chatMessages.appendChild(msgDiv);
     }
 
-    function startSendTimer(durationMs = 6000) {
-        sendTimerContainer.classList.add('visible');
-        let start = null;
-        function step(timestamp) {
-            if (!start) start = timestamp;
-            let progress = timestamp - start;
-            let remaining = Math.max(0, durationMs - progress);
-            timerText.textContent = Math.ceil(remaining / 1000);
-            const offset = (remaining / durationMs) * circleLength;
-            timerCircle.style.strokeDashoffset = circleLength - offset;
-            if (progress < durationMs) window.requestAnimationFrame(step);
-            else sendTimerContainer.classList.remove('visible');
-        }
-        window.requestAnimationFrame(step);
-    }
-
-    async function sendData(msg, type = 'text', fileData = '') {
-        startSendTimer(6000); 
-        try {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const params = new URLSearchParams();
-            params.append('name', myName);
-            params.append('message', msg);
-            params.append('timestamp', timeString);
-            params.append('type', type);
-            params.append('fileData', fileData);
-            await fetch(currentGoogleUrl, { method: 'POST', body: params });
-            if (type === 'tts') speakText(msg);
-            await fetchMessages(false);
-        } catch (err) { alert("Ошибка отправки."); }
-    }
-
-    function assembleUrlWithDigits(digitsStr) {
-        const d = digitsStr.trim().replace(/\D/g, ''); 
-        if (d.length < 9) return false; 
-
-        const t0 = "AKfycbz" + d[0];           
-        const t1 = "Ujv" + d[1];               
-        const t2 = "a" + d[2];                 
-        const t3 = "iK" + d[3] + d[4];         
-        const t4 = "ZoPLsPdwFGEoO_qhGHvkwtGN" + d[5]; 
-        const t5 = "zmgHAeGCVfPyzjlfX" + d[6];  
-        const t6 = "CeII" + d[7] + d[8] + "FkuO"; 
-
-        const fullToken = t0 + t1 + t2 + t3 + t4 + t5 + t6;
-        currentGoogleUrl = "https://script.google.com/macros/s/" + fullToken + "/exec";
-        
-        sessionStorage.setItem('chat_puzzle_digits', d);
-        
-        fetchMessages(false);
-        setInterval(() => { fetchMessages(true); }, 5000);
-        return true;
-    }
-
-    const hashDigits = window.location.hash.substring(1);
-    const savedDigits = sessionStorage.getItem('chat_puzzle_digits');
-
-    if (hashDigits && /^\d+$/.test(hashDigits)) {
-        assembleUrlWithDigits(hashDigits);
-    } else if (savedDigits) {
-        assembleUrlWithDigits(savedDigits);
-    }
-
-    authBtn.addEventListener('click', () => {
-        const val = digitsInput.value;
-        if (!val) { alert("Введите цифры!"); return; }
-        assembleUrlWithDigits(val);
+    // делегированный обработчик TTS (без inline onclick — безопаснее)
+    chatMessages.querySelectorAll('.tts-btn[data-tts]').forEach(btn => {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => speakText(btn.dataset.tts));
     });
 
-    digitsInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') authBtn.click();
-    });
+    if (isBackground && newFromOthers) playNotificationSound();
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    lastHandledMessageCount = list.length;
+  } catch (err) {
+    console.error('fetchMessages:', err);
+    // не сбрасываем соединение из-за одного сетевого сбоя — просто подождём следующий тик
+  }
+}
 
-    chatForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const text = messageInput.value.trim();
-        if (!text) return;
-        messageInput.value = '';
-        sendData(text, 'text');
-    });
+/* =====================================================================
+   ОТПРАВКА
+   ===================================================================== */
+function startSendTimer(durationMs = 6000) {
+  sendTimerContainer.classList.add('visible');
+  let start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const progress = ts - start;
+    const remaining = Math.max(0, durationMs - progress);
+    timerText.textContent = Math.ceil(remaining / 1000);
+    const offset = (remaining / durationMs) * circleLength;
+    timerCircle.style.strokeDashoffset = circleLength - offset;
+    if (progress < durationMs) requestAnimationFrame(step);
+    else sendTimerContainer.classList.remove('visible');
+  }
+  requestAnimationFrame(step);
+}
 
-    fileInput.addEventListener('change', () => {
-        const files = fileInput.files;
-        if (!files || files.length === 0) return;
-        const file = files[0];
-        if (file.size > 30000) { alert("Файл слишком большой! Лимит — 30 КБ."); return; }
-        const reader = new FileReader();
-        reader.onload = function(e) { sendData(file.name, 'file', e.target.result); };
-        reader.readAsDataURL(file);
-        fileInput.value = '';
-    });
+async function sendData(msg, type = 'text', fileData = '') {
+  if (!currentGoogleUrl) { showAuthError('Канал не активирован.'); return; }
+  startSendTimer(6000);
+  try {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'ru-RU';
-        recognition.interimResults = false;
-        
-        voiceRecBtn.addEventListener('click', () => {
-            if (isRecognizing) return;
-            isRecognizing = true;
-            voiceRecBtn.classList.add('btn-active');
-            let elapsedSec = 0;
-            voiceRecBtn.textContent = `🎙️ Слушаю (${elapsedSec}с)`;
-            robotIntervalId = setInterval(() => {
-                elapsedSec++;
-                voiceRecBtn.textContent = `🎙️ Слушаю (${elapsedSec}с)`;
-            }, 1000);
-            recognition.start();
-        });
+    // FormData надёжнее для больших base64 (fileData) — не раздувает query
+    const fd = new FormData();
+    fd.append('name', myName);
+    fd.append('message', msg);
+    fd.append('timestamp', timeString);
+    fd.append('type', type);
+    if (fileData) fd.append('fileData', fileData);
 
-        recognition.onresult = (event) => {
-            if (event.results && event.results[0] && event.results[0][0]) {
-                const resultText = event.results[0][0].transcript;
-                if (resultText.trim()) sendData(resultText, 'tts');
-            }
-        };
+    const res = await fetch(currentGoogleUrl, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
 
-        recognition.onend = () => {
-            isRecognizing = false;
-            if (robotIntervalId) clearInterval(robotIntervalId);
-            voiceRecBtn.classList.remove('btn-active');
-            voiceRecBtn.textContent = "🎤 Робот";
-        };
-    } else {
-        voiceRecBtn.style.display = 'none';
+    if (type === 'tts') speakText(msg);
+    // подтягиваем сразу, чтобы увидеть своё сообщение без задержки
+    await fetchMessages(false);
+  } catch (err) {
+    console.error('sendData:', err);
+    authError.textContent = 'Ошибка отправки. Проверьте соединение.';
+  }
+}
+
+/* =====================================================================
+   ОБРАБОТЧИКИ UI
+   ===================================================================== */
+authBtn.addEventListener('click', () => activate(digitsInput.value));
+digitsInput.addEventListener('keydown', e => { if (e.key === 'Enter') authBtn.click(); });
+digitsInput.addEventListener('input', () => { digitsInput.value = digitsInput.value.replace(/\D/g, '').slice(0, 9); });
+
+logoutBtn.addEventListener('click', () => {
+  if (pollIntervalId) { clearInterval(pollIntervalId); pollIntervalId = null; }
+  sessionStorage.removeItem('chat_puzzle_digits');
+  sessionStorage.removeItem('chat_user_pure_name');
+  history.replaceState(null, '', location.pathname + location.search);
+  location.reload();
+});
+
+chatForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const text = messageInput.value.trim();
+  if (!text) return;
+  messageInput.value = '';
+  sendData(text, 'text');
+});
+
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files && fileInput.files[0];
+  if (!f) return;
+  if (f.size > 30000) { alert('Файл слишком большой! Лимит — 30 КБ.'); fileInput.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = e => sendData(f.name, 'file', e.target.result);
+  reader.readAsDataURL(f);
+  fileInput.value = '';
+});
+
+/* ---------- Голос в текст (робот) ---------- */
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'ru-RU';
+  recognition.interimResults = false;
+
+  voiceRecBtn.addEventListener('click', () => {
+    if (isRecognizing) return;
+    isRecognizing = true;
+    voiceRecBtn.classList.add('btn-active');
+    let sec = 0;
+    voiceRecBtn.textContent = `🎙️ Слушаю (${sec}с)`;
+    robotIntervalId = setInterval(() => { sec++; voiceRecBtn.textContent = `🎙️ Слушаю (${sec}с)`; }, 1000);
+    recognition.start();
+  });
+
+  recognition.onresult = event => {
+    const t = event.results?.[0]?.[0]?.transcript;
+    if (t && t.trim()) sendData(t.trim(), 'tts');
+  };
+
+  recognition.onend = () => {
+    isRecognizing = false;
+    if (robotIntervalId) clearInterval(robotIntervalId);
+    voiceRecBtn.classList.remove('btn-active');
+    voiceRecBtn.textContent = '🎤 Робот';
+  };
+} else {
+  voiceRecBtn.style.display = 'none';
+}
+
+/* ---------- Аудиозапись ---------- */
+audioBtn.addEventListener('click', async () => {
+  if (isRecording) {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      if (audioTimeoutId) clearTimeout(audioTimeoutId);
+      if (countdownIntervalId) clearInterval(countdownIntervalId);
     }
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    audioChunks = [];
+    isRecording = true;
+    audioBtn.classList.add('btn-active');
+    let timeLeft = 15;
+    audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
 
-    audioBtn.addEventListener('click', async () => {
-        if (isRecording) {
-            if (mediaRecorder && mediaRecorder.state === "recording") {
-                mediaRecorder.stop();
-                if (audioTimeoutId) clearTimeout(audioTimeoutId);
-                if (countdownIntervalId) clearInterval(countdownIntervalId);
-            }
-            return;
-        }
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            audioChunks = [];
-            isRecording = true;
-            audioBtn.classList.add('btn-active');
-            let timeLeft = 15;
-            audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
+    countdownIntervalId = setInterval(() => {
+      timeLeft--;
+      if (timeLeft >= 0) audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
+    }, 1000);
 
-            countdownIntervalId = setInterval(() => {
-                timeLeft--;
-                if (timeLeft >= 0) audioBtn.textContent = `🛑 Стоп (${timeLeft}с)`;
-            }, 1000);
+    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      if (countdownIntervalId) clearInterval(countdownIntervalId);
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const reader = new FileReader();
+      reader.onloadend = () => sendData('Голосовое сообщение', 'audio', reader.result);
+      reader.readAsDataURL(audioBlob);
+      isRecording = false;
+      audioBtn.classList.remove('btn-active');
+      audioBtn.textContent = '🎙️ Аудио';
+      stream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start(250);
+    audioTimeoutId = setTimeout(() => {
+      if (mediaRecorder.state === 'recording') mediaRecorder.stop();
+    }, 15000);
+  } catch (err) {
+    alert('Доступ к микрофону заблокирован.');
+    if (countdownIntervalId) clearInterval(countdownIntervalId);
+    isRecording = false;
+    audioBtn.classList.remove('btn-active');
+    audioBtn.textContent = '🎙️ Аудио';
+  }
+});
 
-            mediaRecorder.ondataavailable = e => {
-                if (e.data && e.data.size > 0) audioChunks.push(e.data);
-            };
-            mediaRecorder.onstop = () => {
-                if (countdownIntervalId) clearInterval(countdownIntervalId);
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    sendData('Голосовое сообщение', 'audio', reader.result);
-                };
-                reader.readAsDataURL(audioBlob);
-                isRecording = false;
-                audioBtn.classList.remove('btn-active');
-                audioBtn.textContent = "🎙️ Аудио";
-                stream.getTracks().forEach(track => track.stop());
-            };
-            mediaRecorder.start(250);
-            audioTimeoutId = setTimeout(() => { 
-                if (mediaRecorder.state === "recording") mediaRecorder.stop(); 
-            }, 15000);
-        } catch (err) { 
-            alert("Доступ к микрофону заблокирован."); 
-            if (countdownIntervalId) clearInterval(countdownIntervalId);
-            isRecording = false;
-            audioBtn.classList.remove('btn-active');
-            audioBtn.textContent = "🎙️ Аудио";
-        }
-    });
+/* =====================================================================
+   СТАРТ: хэш → sessionStorage → экран ввода
+   ===================================================================== */
+(function init() {
+  const hashDigits = location.hash.replace(/^#/, '').replace(/\D/g, '');
+  const savedDigits = sessionStorage.getItem('chat_puzzle_digits');
+
+  if (hashDigits.length === 9) {
+    activate(hashDigits);
+  } else if (savedDigits && /^\d{9}$/.test(savedDigits)) {
+    activate(savedDigits);
+  } else {
+    showAuth();
+  }
+})();
 </script>
 </body>
 </html>
