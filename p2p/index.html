@@ -3,153 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>P2P Файлообменник (WebRTC + QR + Resume)</title>
+<title>P2P Файлообменник</title>
 <style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    max-width: 760px; margin: 0 auto; padding: 20px;
-    line-height: 1.6; background: #f5f7fa; color: #2c3e50;
+    max-width: 680px; margin: 0 auto; padding: 20px;
+    line-height: 1.5; background: #f5f7fa; color: #2c3e50;
   }
-  h1 { font-size: 1.6em; margin-bottom: 0.2em; }
-  .subtitle { color: #7f8c8d; margin-top: 0; font-size: 0.95em; }
-  .step {
+  h1 { font-size: 1.5em; margin: 0 0 4px; }
+  .sub { color: #7f8c8d; margin: 0 0 20px; font-size: 0.9em; }
+  .card {
     background: #fff; padding: 18px; border-radius: 10px;
-    margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.07);
   }
-  .step h3 { margin-top: 0; font-size: 1.05em; color: #34495e; }
+  .card h2 { font-size: 1em; margin: 0 0 12px; color: #34495e; }
   textarea {
-    width: 100%; min-height: 90px; font-family: ui-monospace, monospace;
+    width: 100%; min-height: 80px; font-family: ui-monospace, monospace;
     font-size: 11px; padding: 10px; border: 1px solid #dfe6e9;
     border-radius: 6px; resize: vertical; background: #fafbfc;
-    word-break: break-all;
+    word-break: break-all; display: block; margin-bottom: 8px;
   }
   textarea:focus { outline: none; border-color: #3498db; background: #fff; }
   button {
     background: #3498db; color: #fff; border: none; padding: 10px 16px;
-    border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.95em;
-    transition: background 0.15s; margin: 4px 4px 4px 0;
+    border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;
+    transition: background 0.15s;
   }
   button:hover:not(:disabled) { background: #2980b9; }
   button:disabled { background: #bdc3c7; cursor: not-allowed; }
-  button.secondary { background: #95a5a6; }
-  button.secondary:hover:not(:disabled) { background: #7f8c8d; }
-  button.success { background: #27ae60; }
-  button.success:hover:not(:disabled) { background: #229954; }
-  .copy-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 6px; }
-  .copy-row textarea { flex: 1; }
-  .copy-btn {
-    background: #ecf0f1; color: #2c3e50; padding: 8px 12px;
-    font-size: 0.85em; white-space: nowrap; align-self: stretch;
+  button.green { background: #27ae60; }
+  button.green:hover:not(:disabled) { background: #229954; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row textarea { flex: 1; min-width: 200px; }
+  .status {
+    padding: 12px 14px; border-radius: 6px; border-left: 4px solid #3498db;
+    background: #ecf0f1; font-weight: 500; margin-bottom: 12px;
   }
-  .copy-btn:hover:not(:disabled) { background: #dfe6e9; }
-  .status-box {
-    background: #ecf0f1; padding: 12px 16px; border-radius: 6px;
-    border-left: 4px solid #3498db; font-weight: 500; margin-top: 10px;
-    transition: all 0.2s;
-  }
-  .status-box.ok { background: #d5f4e6; border-color: #27ae60; color: #1e8449; }
-  .status-box.err { background: #fadbd8; border-color: #e74c3c; color: #922b21; }
-  .status-box.wait { background: #fef9e7; border-color: #f39c12; color: #9a7d0a; }
-  .progress-wrap { background: #ecf0f1; border-radius: 4px; height: 10px; overflow: hidden; margin: 8px 0; display: none; }
-  .progress-bar { background: #3498db; height: 100%; width: 0%; transition: width 0.2s; }
-  .file-list { list-style: none; padding: 0; margin: 8px 0; }
-  .file-list li { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 0.9em; }
-  .file-list li:last-child { border-bottom: none; }
-  .hint { font-size: 0.85em; color: #7f8c8d; margin: 6px 0; }
-  .divider { border: none; border-top: 1px solid #ecf0f1; margin: 16px 0; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600; margin-left: 6px; }
-  .badge.on { background: #d5f4e6; color: #1e8449; }
-  .badge.off { background: #ecf0f1; color: #7f8c8d; }
-  a.download-link {
+  .status.ok { background: #d5f4e6; border-color: #27ae60; color: #1e8449; }
+  .status.err { background: #fadbd8; border-color: #e74c3c; color: #922b21; }
+  .status.wait { background: #fef9e7; border-color: #f39c12; color: #9a7d0a; }
+  .progress { background: #ecf0f1; border-radius: 4px; height: 8px; overflow: hidden; margin: 10px 0; display: none; }
+  .progress > div { background: #3498db; height: 100%; width: 0%; transition: width 0.2s; }
+  .files { font-size: 0.9em; color: #555; margin: 8px 0; }
+  .files li { padding: 2px 0; }
+  a.dl {
     display: inline-block; padding: 10px 16px; background: #27ae60;
     color: #fff; text-decoration: none; border-radius: 6px;
-    font-weight: 600; margin-top: 8px;
+    font-weight: 600; margin: 4px 4px 4px 0;
   }
-  a.download-link:hover { background: #229954; }
-  .qr-wrap { margin-top: 10px; padding: 10px; background: #fff; border: 1px dashed #dfe6e9; border-radius: 8px; display: none; text-align: center; }
-  .qr-wrap canvas { max-width: 100%; height: auto; image-rendering: pixelated; }
-  .qr-wrap .qr-hint { font-size: 0.8em; color: #7f8c8d; margin-top: 6px; }
-  .qr-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
-  .resume-banner { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px 14px; border-radius: 6px; margin: 8px 0; display: none; font-size: 0.9em; }
+  a.dl:hover { background: #229954; }
+  .hint { font-size: 0.85em; color: #7f8c8d; margin: 0 0 8px; }
   @media (max-width: 480px) {
-    body { padding: 12px; }
-    .copy-row { flex-direction: column; }
-    .copy-btn { align-self: stretch; }
+    .row { flex-direction: column; align-items: stretch; }
   }
 </style>
 </head>
 <body>
 
 <h1>P2P Файлообменник</h1>
-<p class="subtitle">Прямая передача файлов (WebRTC DataChannel). QR-коды для быстрой передачи кодов. Устойчивость к обрывам.</p>
+<p class="sub">Передача файлов напрямую между браузерами. Без серверов.</p>
 
-<!-- Шаг 1 -->
-<div class="step" id="step1">
-  <h3>Шаг 1 · Отправитель</h3>
-  <p class="hint">Выберите файлы и создайте код приглашения. Передайте код получателю (текстом или QR-кодом).</p>
-  <input type="file" id="fileInput" multiple>
-  <ul class="file-list" id="fileList"></ul>
+<div class="status" id="status">Готово к работе.</div>
+<div class="progress" id="progress"><div id="progressBar"></div></div>
+<div id="result"></div>
+
+<!-- Отправитель -->
+<div class="card">
+  <h2>📤 Отправитель</h2>
+  <p class="hint">1. Выберите файл. 2. Нажмите кнопку и передайте код получателю. 3. Вставьте ответный код и нажмите «Подключиться».</p>
+  <input type="file" id="fileInput">
+  <ul class="files" id="fileList"></ul>
   <button id="createOfferBtn">Создать код приглашения</button>
-  <div class="copy-row" id="offerRow" style="display:none">
-    <textarea id="localOffer" readonly placeholder="Код приглашения..."></textarea>
-    <button class="copy-btn" data-copy="localOffer">Копировать</button>
+  <div id="offerBox" style="display:none; margin-top:10px;">
+    <p class="hint">Передайте этот код получателю:</p>
+    <textarea id="localOffer" readonly></textarea>
   </div>
-  <div class="qr-row" id="offerQrRow" style="display:none">
-    <button class="secondary" id="showOfferQrBtn">Показать QR-код</button>
+  <div id="answerBox" style="display:none; margin-top:10px;">
+    <p class="hint">Вставьте ответный код от получателя:</p>
+    <textarea id="remoteAnswer" placeholder="Ответный код..."></textarea>
+    <button class="green" id="connectBtn">Подключиться и отправить</button>
   </div>
-  <div class="qr-wrap" id="offerQrWrap">
-    <canvas id="offerQrCanvas"></canvas>
-    <div class="qr-hint" id="offerQrHint"></div>
-  </div>
-  <div class="hint" id="offerHint" style="display:none">Дождитесь надписи «Готово», затем копируйте код или покажите QR получателю.</div>
 </div>
 
-<!-- Шаг 2 -->
-<div class="step" id="step2">
-  <h3>Шаг 2 · Получатель</h3>
-  <p class="hint">Вставьте код приглашения от отправителя и создайте ответный код.</p>
-  <textarea id="remoteOffer" placeholder="Вставьте сюда код приглашения..."></textarea>
+<!-- Получатель -->
+<div class="card">
+  <h2>📥 Получатель</h2>
+  <p class="hint">1. Вставьте код приглашения. 2. Нажмите кнопку и передайте ответный код отправителю.</p>
+  <textarea id="remoteOffer" placeholder="Код приглашения от отправителя..."></textarea>
   <button id="acceptOfferBtn">Создать ответный код</button>
-  <div class="copy-row" id="answerRow" style="display:none">
-    <textarea id="localAnswer" readonly placeholder="Ответный код..."></textarea>
-    <button class="copy-btn" data-copy="localAnswer">Копировать</button>
+  <div id="answerOutBox" style="display:none; margin-top:10px;">
+    <p class="hint">Передайте этот ответный код отправителю:</p>
+    <textarea id="localAnswer" readonly></textarea>
   </div>
-  <div class="qr-row" id="answerQrRow" style="display:none">
-    <button class="secondary" id="showAnswerQrBtn">Показать QR-код</button>
-  </div>
-  <div class="qr-wrap" id="answerQrWrap">
-    <canvas id="answerQrCanvas"></canvas>
-    <div class="qr-hint" id="answerQrHint"></div>
-  </div>
-  <div class="hint" id="answerHint" style="display:none">Дождитесь надписи «Готово», затем передайте код отправителю.</div>
-</div>
-
-<!-- Шаг 3 -->
-<div class="step" id="step3">
-  <h3>Шаг 3 · Отправитель: завершение</h3>
-  <p class="hint">Вставьте ответный код от получателя. После подключения передача начнётся автоматически.</p>
-  <textarea id="remoteAnswer" placeholder="Вставьте сюда ответный код..."></textarea>
-  <button id="connectBtn" class="success">Подключиться и отправить</button>
-</div>
-
-<!-- Статус -->
-<div class="step">
-  <h3>Статус <span class="badge off" id="connBadge">не подключено</span></h3>
-  <div class="status-box" id="status">Ожидание действий...</div>
-  <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
-  <div class="resume-banner" id="resumeBanner"></div>
-  <div id="result"></div>
-  <hr class="divider">
-  <button class="secondary" id="resetBtn">Сбросить соединение</button>
-  <button class="secondary" id="clearResumeBtn">Очистить сохранённый прогресс</button>
 </div>
 
 <script>
 /* =====================================================================
    КОНФИГУРАЦИЯ WEBRTC
-   Для работы через интернет нужен TURN. Ниже — пример с Cloudflare.
-   Замените USERNAME/CREDENTIAL на свои из панели Cloudflare.
+   Для работы через интернет нужен TURN. Впишите свои креды Cloudflare
+   (или другого TURN-провайдера) в username/credential.
    Без TURN соединение установится только в локальной сети.
    ===================================================================== */
 const RTC_CONFIG = {
@@ -161,8 +114,8 @@ const RTC_CONFIG = {
         'turn:turn.cloudflare.com:3478?transport=tcp',
         'turns:turn.cloudflare.com:443?transport=tcp'
       ],
-      username: 'ВАШ_USERNAME_ОТ_CLOUDFLARE',
-      credential: 'ВАШ_CREDENTIAL_ОТ_CLOUDFLARE'
+      username: 'ВАШ_USERNAME',
+      credential: 'ВАШ_CREDENTIAL'
     }
   ]
 };
@@ -170,782 +123,236 @@ const RTC_CONFIG = {
 const CHUNK_SIZE = 16 * 1024;
 const BUFFER_HIGH = 256 * 1024;
 const BUFFER_LOW  = 64 * 1024;
-const DB_NAME = 'p2p-files';
-const DB_STORE = 'chunks';
-
-let pc = null;
-let sendChannel = null;
-let receiveChannel = null;
-let filesToSend = [];
-let currentFileIndex = -1;
-let isSender = false;
-let transferTotal = 0;
-let transferSent = 0;
-let receivedMeta = null;
-let receivedBytes = 0;
-let receivedFromDB = 0;   // сколько уже было в IndexedDB при возобновлении
-let receiverFileIndex = 0;
-let transferDone = false;
 
 const $ = id => document.getElementById(id);
 const statusEl = $('status');
-const resultEl = $('result');
-const progressWrap = $('progressWrap');
+const progressEl = $('progress');
 const progressBar = $('progressBar');
-const connBadge = $('connBadge');
-const resumeBanner = $('resumeBanner');
+const resultEl = $('result');
 
-/* ---------- Утилиты ---------- */
+let pc = null;
+let sendChannel = null;
+let files = [];
+let isSender = false;
+let totalBytes = 0;
+let sentBytes = 0;
+
+let receivedChunks = [];
+let receivedMeta = null;
+let receivedBytes = 0;
+
 function setStatus(text, type = '') {
   statusEl.textContent = text;
-  statusEl.className = 'status-box ' + type;
+  statusEl.className = 'status ' + type;
 }
-function setBadge(connected) {
-  connBadge.textContent = connected ? 'подключено' : 'не подключено';
-  connBadge.className = 'badge ' + (connected ? 'on' : 'off');
-}
-function showProgress(show) { progressWrap.style.display = show ? 'block' : 'none'; }
-function updateProgress(sent, total) {
-  const pct = total ? Math.min(100, Math.round(sent / total * 100)) : 0;
+function showProgress(show) { progressEl.style.display = show ? 'block' : 'none'; }
+function setProgress(done, total) {
+  const pct = total ? Math.min(100, Math.round(done / total * 100)) : 0;
   progressBar.style.width = pct + '%';
 }
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' Б';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
-  if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(2) + ' МБ';
-  return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' ГБ';
+function fmt(b) {
+  if (b < 1024) return b + ' Б';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' КБ';
+  if (b < 1073741824) return (b / 1048576).toFixed(2) + ' МБ';
+  return (b / 1073741824).toFixed(2) + ' ГБ';
 }
-function b64encode(obj) { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
-function b64decode(str) { return JSON.parse(decodeURIComponent(escape(atob(str)))); }
-async function copyToClipboard(text) {
-  try { await navigator.clipboard.writeText(text); return true; }
-  catch {
-    const ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); } catch {}
-    document.body.removeChild(ta);
-    return true;
-  }
-}
+function b64enc(o) { return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
+function b64dec(s) { return JSON.parse(decodeURIComponent(escape(atob(s)))); }
 
-/* =====================================================================
-   QR-КОД НА ЧИСТОМ CANVAS (без библиотек)
-   Реализация QR версий 1..20, уровень коррекции L (максимум данных).
-   Байтовый режим. Возвращает matrix (boolean[][]) или null если не влезает.
-   ===================================================================== */
-const QR = (() => {
-  // EC codewords per block для уровня L, версии 1..20
-  const EC_L = [0,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28];
-  // Число EC-блоков для уровня L, версии 1..20
-  const BLOCKS_L = [0,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8];
-  // Total codewords (data+EC) версий 1..20
-  const TOTAL_CW = [0,26,44,70,100,134,172,196,242,292,346,404,466,532,581,655,733,815,901,991,1085];
-
-  function gfMul(x, y) {
-    let z = 0;
-    for (let i = 7; i >= 0; i--) {
-      z = (z << 1) ^ ((z >>> 7) * 0x11D);
-      z ^= ((y >>> i) & 1) * x;
-    }
-    return z & 0xFF;
-  }
-  function rsGenPoly(degree) {
-    let poly = [1];
-    for (let i = 0; i < degree; i++) {
-      const next = new Array(poly.length + 1).fill(0);
-      for (let j = 0; j < poly.length; j++) {
-        next[j] ^= poly[j];
-        next[j + 1] ^= gfMul(poly[j], Math.pow(2, i));
-      }
-      poly = next;
-    }
-    return poly;
-  }
-  function rsEncode(data, ecLen) {
-    const gen = rsGenPoly(ecLen);
-    const res = new Array(data.length + ecLen).fill(0);
-    for (let i = 0; i < data.length; i++) res[i] = data[i];
-    for (let i = 0; i < data.length; i++) {
-      const factor = res[i];
-      if (factor === 0) continue;
-      for (let j = 0; j < gen.length; j++) {
-        res[i + j] ^= gfMul(gen[j], factor);
-      }
-    }
-    return res.slice(data.length);
-  }
-
-  function getCapacityBytes(version) {
-    const total = TOTAL_CW[version];
-    const ec = EC_L[version] * BLOCKS_L[version];
-    const dataCW = total - ec;
-    // 4 бита mode + count bits (8 для v1-9, 16 для v10+)
-    const countBits = version <= 9 ? 8 : 16;
-    const headerBits = 4 + countBits;
-    const maxBits = dataCW * 8;
-    return Math.floor((maxBits - headerBits) / 8);
-  }
-
-  function chooseVersion(byteLen) {
-    for (let v = 1; v <= 20; v++) {
-      if (getCapacityBytes(v) >= byteLen) return v;
-    }
-    return null;
-  }
-
-  function encodeData(bytes, version) {
-    const total = TOTAL_CW[version];
-    const ecTotal = EC_L[version] * BLOCKS_L[version];
-    const dataCW = total - ecTotal;
-    const countBits = version <= 9 ? 8 : 16;
-
-    const bits = [];
-    const pushBits = (val, n) => {
-      for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1);
-    };
-    pushBits(0b0100, 4); // byte mode
-    pushBits(bytes.length, countBits);
-    for (const b of bytes) pushBits(b, 8);
-    // terminator
-    const maxBits = dataCW * 8;
-    let term = Math.min(4, maxBits - bits.length);
-    for (let i = 0; i < term; i++) bits.push(0);
-    // pad to byte boundary
-    while (bits.length % 8 !== 0) bits.push(0);
-    // pad with 0xEC, 0x11
-    const padBytes = [0xEC, 0x11];
-    let pi = 0;
-    while (bits.length < maxBits) {
-      pushBits(padBytes[pi++ % 2], 8);
-    }
-    // convert to codewords
-    const cw = [];
-    for (let i = 0; i < bits.length; i += 8) {
-      let v = 0;
-      for (let j = 0; j < 8; j++) v = (v << 1) | bits[i + j];
-      cw.push(v);
-    }
-    return cw;
-  }
-
-  function interleave(dataCW, version) {
-    const blocks = BLOCKS_L[version];
-    const ecLen = EC_L[version];
-    const totalCW = TOTAL_CW[version];
-    const dataLen = totalCW - blocks * ecLen;
-
-    // split data into blocks (first blocks get one extra if not divisible)
-    const shortBlockLen = Math.floor(dataLen / blocks);
-    const numLong = dataLen % blocks;
-    const dataBlocks = [];
-    const ecBlocks = [];
-    let off = 0;
-    for (let i = 0; i < blocks; i++) {
-      const len = shortBlockLen + (i < numLong ? 1 : 0);
-      const blk = dataCW.slice(off, off + len);
-      off += len;
-      dataBlocks.push(blk);
-      ecBlocks.push(rsEncode(blk, ecLen));
-    }
-    // interleave data
-    const result = [];
-    const maxDataLen = shortBlockLen + (numLong > 0 ? 1 : 0);
-    for (let i = 0; i < maxDataLen; i++) {
-      for (let b = 0; b < blocks; b++) {
-        if (i < dataBlocks[b].length) result.push(dataBlocks[b][i]);
-      }
-    }
-    // interleave EC
-    for (let i = 0; i < ecLen; i++) {
-      for (let b = 0; b < blocks; b++) {
-        result.push(ecBlocks[b][i]);
-      }
-    }
-    return result;
-  }
-
-  function getSize(version) { return version * 4 + 17; }
-
-  function createMatrix(version) {
-    const size = getSize(version);
-    const m = Array.from({length: size}, () => new Array(size).fill(null));
-    const reserved = Array.from({length: size}, () => new Array(size).fill(false));
-
-    // finder patterns
-    function placeFinder(r, c) {
-      for (let dr = -1; dr <= 7; dr++) {
-        for (let dc = -1; dc <= 7; dc++) {
-          const rr = r + dr, cc = c + dc;
-          if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
-          const val = (dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6) ?
-            ((dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4)) ? 1 : 0) : 0;
-          m[rr][cc] = val; reserved[rr][cc] = true;
-        }
-      }
-    }
-    placeFinder(0, 0);
-    placeFinder(0, size - 7);
-    placeFinder(size - 7, 0);
-
-    // timing patterns
-    for (let i = 8; i < size - 8; i++) {
-      m[6][i] = i % 2 === 0 ? 1 : 0; reserved[6][i] = true;
-      m[i][6] = i % 2 === 0 ? 1 : 0; reserved[i][6] = true;
-    }
-
-    // alignment patterns (версии 2+)
-    const alignPos = {
-      2:[6,18],3:[6,22],4:[6,26],5:[6,30],6:[6,34],7:[6,22,38],8:[6,24,42],9:[6,26,46],10:[6,28,50],
-      11:[6,30,54],12:[6,32,58],13:[6,34,62],14:[6,26,46,66],15:[6,26,48,70],16:[6,26,50,74],
-      17:[6,30,54,78],18:[6,30,56,82],19:[6,30,58,86],20:[6,34,62,90]
-    };
-    if (alignPos[version]) {
-      const pos = alignPos[version];
-      for (const r of pos) {
-        for (const c of pos) {
-          // skip if overlaps finder
-          if ((r <= 8 && c <= 8) || (r <= 8 && c >= size - 9) || (r >= size - 9 && c <= 8)) continue;
-          for (let dr = -2; dr <= 2; dr++) {
-            for (let dc = -2; dc <= 2; dc++) {
-              const val = (Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0)) ? 1 : 0;
-              m[r + dr][c + dc] = val;
-              reserved[r + dr][c + dc] = true;
-            }
-          }
-        }
-      }
-    }
-
-    // format info placeholders (will fill later)
-    for (let i = 0; i <= 8; i++) {
-      if (!reserved[8][i]) { m[8][i] = 0; reserved[8][i] = true; }
-      if (!reserved[i][8]) { m[i][8] = 0; reserved[i][8] = true; }
-    }
-    // dark module
-    m[size - 8][8] = 1; reserved[size - 8][8] = true;
-
-    // reserve version info area for v>=7
-    if (version >= 7) {
-      for (let i = 0; i < 6; i++) {
-        for (let j = 0; j < 3; j++) {
-          reserved[size - 11 + j][i] = true;
-          reserved[i][size - 11 + j] = true;
-        }
-      }
-    }
-
-    return { m, reserved, size };
-  }
-
-  function placeData(m, reserved, size, dataCW) {
-    // zigzag placement
-    let dir = -1;
-    let row = size - 1;
-    let col = size - 1;
-    let bitIdx = 0;
-    let byteIdx = 0;
-    let bitInByte = 7;
-    while (col > 0) {
-      if (col === 6) col--; // skip timing column
-      for (let i = 0; i < size; i++) {
-        const r = dir === -1 ? row - i : row + i;
-        for (let dc = 0; dc < 2; dc++) {
-          const c = col - dc;
-          if (reserved[r][c]) continue;
-          let bit = 0;
-          if (byteIdx < dataCW.length) {
-            bit = (dataCW[byteIdx] >> bitInByte) & 1;
-            bitInByte--;
-            if (bitInByte < 0) { bitInByte = 7; byteIdx++; }
-          }
-          m[r][c] = bit;
-        }
-      }
-      row = dir === -1 ? 0 : size - 1;
-      dir = -dir;
-      col -= 2;
-    }
-  }
-
-  function maskFn(mask, i, j) {
-    switch (mask) {
-      case 0: return (i + j) % 2 === 0;
-      case 1: return i % 2 === 0;
-      case 2: return j % 3 === 0;
-      case 3: return (i + j) % 3 === 0;
-      case 4: return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0;
-      case 5: return (i * j) % 2 + (i * j) % 3 === 0;
-      case 6: return ((i * j) % 2 + (i * j) % 3) % 2 === 0;
-      case 7: return ((i + j) % 2 + (i * j) % 3) % 2 === 0;
-    }
-  }
-
-  function applyMask(m, reserved, size, mask) {
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < size; j++) {
-        if (reserved[i][j]) continue;
-        if (maskFn(mask, i, j)) m[i][j] ^= 1;
-      }
-    }
-  }
-
-  function drawFormatInfo(m, size, ecLevel, mask) {
-    // ecLevel: L=1, M=0, Q=3, H=2 (2-bit)
-    const ecBits = { L: 1, M: 0, Q: 3, H: 2 }[ecLevel] ?? 1;
-    const data = (ecBits << 3) | mask;
-    // BCH
-    let rem = data;
-    for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
-    const bits = ((data << 10) | rem) ^ 0x5412;
-    const getBit = k => (bits >>> k) & 1;
-
-    // top-left
-    for (let i = 0; i <= 5; i++) m[8][i] = getBit(i);
-    m[8][7] = getBit(6);
-    m[8][8] = getBit(7);
-    m[7][8] = getBit(8);
-    for (let i = 9; i <= 14; i++) m[14 - i][8] = getBit(i);
-
-    // second copy
-    for (let i = 0; i <= 7; i++) m[size - 1 - i][8] = getBit(i);
-    for (let i = 8; i <= 14; i++) m[8][size - 15 + i] = getBit(i);
-    // dark module
-    m[size - 8][8] = 1;
-  }
-
-  function penalty(m, size) {
-    let score = 0;
-    // rule 1: 5+ same in row/col
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < size; j++) {
-        // horizontal
-        let run = 1;
-        while (j + run < size && m[i][j + run] === m[i][j]) run++;
-        if (run >= 5) score += run - 2;
-        // vertical
-        run = 1;
-        while (i + run < size && m[i + run][j] === m[i][j]) run++;
-        if (run >= 5) score += run - 2;
-      }
-    }
-    // rule 2: 2x2 blocks
-    for (let i = 0; i < size - 1; i++) {
-      for (let j = 0; j < size - 1; j++) {
-        const v = m[i][j];
-        if (v === m[i+1][j] && v === m[i][j+1] && v === m[i+1][j+1]) score += 3;
-      }
-    }
-    // rule 3: finder-like patterns (simplified)
-    // rule 4: dark ratio (simplified, skip)
-    return score;
-  }
-
-  function generate(text) {
-    const bytes = Array.from(new TextEncoder().encode(text));
-    const version = chooseVersion(bytes.length);
-    if (!version) return null;
-
-    const dataCW = encodeData(bytes, version);
-    const finalCW = interleave(dataCW, version);
-
-    const { m, reserved, size } = createMatrix(version);
-    placeData(m, reserved, size, finalCW);
-
-    // try masks, choose best
-    let best = null, bestScore = Infinity;
-    for (let mask = 0; mask < 8; mask++) {
-      const test = m.map(r => r.slice());
-      applyMask(test, reserved, size, mask);
-      drawFormatInfo(test, size, 'L', mask);
-      const s = penalty(test, size);
-      if (s < bestScore) { bestScore = s; best = test; }
-    }
-    return best;
-  }
-
-  return { generate };
-})();
-
-function drawQR(canvas, text) {
-  const matrix = QR.generate(text);
-  if (!matrix) {
-    canvas.style.display = 'none';
-    return { ok: false, reason: 'Текст слишком длинный для QR-кода. Скопируйте его вручную.' };
-  }
-  canvas.style.display = 'block';
-  const n = matrix.length;
-  const scale = Math.max(2, Math.floor(240 / n));
-  const quiet = 4 * scale;
-  canvas.width = n * scale + quiet * 2;
-  canvas.height = n * scale + quiet * 2;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#000';
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      if (matrix[i][j]) {
-        ctx.fillRect(quiet + j * scale, quiet + i * scale, scale, scale);
-      }
-    }
-  }
-  return { ok: true };
-}
-
-/* =====================================================================
-   IndexedDB для сохранения принятых чанков
-   ===================================================================== */
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(DB_STORE)) {
-        db.createObjectStore(DB_STORE); // key = fileIndex, value = array of chunks
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function dbSaveChunks(fileIndex, chunks) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readwrite');
-    tx.objectStore(DB_STORE).put(chunks, fileIndex);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-async function dbGetChunks(fileIndex) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readonly');
-    const req = tx.objectStore(DB_STORE).get(fileIndex);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function dbClear() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readwrite');
-    tx.objectStore(DB_STORE).clear();
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-/* =====================================================================
-   Сброс
-   ===================================================================== */
-function resetAll(silent = false) {
-  try { sendChannel && sendChannel.close(); } catch {}
-  try { receiveChannel && receiveChannel.close(); } catch {}
-  try { pc && pc.close(); } catch {}
-  pc = null; sendChannel = null; receiveChannel = null;
-  filesToSend = []; currentFileIndex = -1;
-  transferTotal = 0; transferSent = 0;
-  receivedMeta = null; receivedBytes = 0; receivedFromDB = 0;
-  receiverFileIndex = 0; transferDone = false;
-
-  $('offerRow').style.display = 'none';
-  $('offerHint').style.display = 'none';
-  $('offerQrRow').style.display = 'none';
-  $('offerQrWrap').style.display = 'none';
-  $('answerRow').style.display = 'none';
-  $('answerHint').style.display = 'none';
-  $('answerQrRow').style.display = 'none';
-  $('answerQrWrap').style.display = 'none';
-  $('localOffer').value = '';
-  $('localAnswer').value = '';
-  $('remoteOffer').value = '';
-  $('remoteAnswer').value = '';
-  $('fileList').innerHTML = '';
-  $('fileInput').value = '';
-  resultEl.innerHTML = '';
-  resumeBanner.style.display = 'none';
-  showProgress(false);
-  setBadge(false);
-  $('createOfferBtn').disabled = false;
-  $('acceptOfferBtn').disabled = false;
-  $('connectBtn').disabled = false;
-  if (!silent) setStatus('Соединение сброшено. Начните заново.');
-}
-
-function createPeerConnection() {
-  pc = new RTCPeerConnection(RTC_CONFIG);
-  pc.onconnectionstatechange = () => {
-    const st = pc.connectionState;
-    if (st === 'connected') { setBadge(true); setStatus('P2P соединение установлено!', 'ok'); }
-    else if (st === 'failed' || st === 'disconnected') {
-      setBadge(false);
-      if (st === 'failed') {
-        setStatus('Соединение не установлено. Проверьте сеть и попробуйте снова.', 'err');
-        showResumeHint();
-      }
-    }
-  };
-  pc.oniceconnectionstatechange = () => {
-    if (pc.iceConnectionState === 'failed') {
-      setStatus('ICE не смог установить соединение. Возможно, нужен TURN-сервер или устройства не видят друг друга.', 'err');
-    }
-  };
-  return pc;
-}
-
-function showResumeHint() {
-  resumeBanner.style.display = 'block';
-  resumeBanner.textContent = '⚠ Соединение прервано. Прогресс сохранён — переподключитесь, и передача продолжится с места обрыва (для больших файлов).';
-}
-
-/* ---------- Выбор файлов ---------- */
+/* ---------- Выбор файла ---------- */
 $('fileInput').addEventListener('change', e => {
-  filesToSend = Array.from(e.target.files);
+  files = Array.from(e.target.files);
   const list = $('fileList');
   list.innerHTML = '';
-  filesToSend.forEach((f, i) => {
+  files.forEach((f, i) => {
     const li = document.createElement('li');
-    li.textContent = `${i + 1}. ${f.name} — ${formatSize(f.size)}`;
+    li.textContent = `${i + 1}. ${f.name} — ${fmt(f.size)}`;
     list.appendChild(li);
   });
-  if (filesToSend.length) {
-    setStatus(`Выбрано файлов: ${filesToSend.length}. Нажмите «Создать код приглашения».`);
-  }
+  if (files.length) setStatus(`Выбрано файлов: ${files.length}. Нажмите «Создать код приглашения».`);
 });
 
-/* ---------- QR-кнопки ---------- */
-$('showOfferQrBtn').addEventListener('click', () => {
-  const wrap = $('offerQrWrap');
-  if (wrap.style.display === 'block') { wrap.style.display = 'none'; return; }
-  const text = $('localOffer').value;
-  if (!text) return;
-  const res = drawQR($('offerQrCanvas'), text);
-  wrap.style.display = 'block';
-  $('offerQrHint').textContent = res.ok
-    ? 'Наведите камеру получателя. Если не читается — используйте копирование текста.'
-    : res.reason;
-});
-$('showAnswerQrBtn').addEventListener('click', () => {
-  const wrap = $('answerQrWrap');
-  if (wrap.style.display === 'block') { wrap.style.display = 'none'; return; }
-  const text = $('localAnswer').value;
-  if (!text) return;
-  const res = drawQR($('answerQrCanvas'), text);
-  wrap.style.display = 'block';
-  $('answerQrHint').textContent = res.ok
-    ? 'Наведите камеру отправителя.'
-    : res.reason;
-});
-
-/* ---------- Шаг 1: Offer ---------- */
+/* ---------- Создание Offer ---------- */
 $('createOfferBtn').addEventListener('click', async () => {
-  if (!filesToSend.length) { setStatus('Сначала выберите хотя бы один файл.', 'err'); return; }
-  resetAll(true);
+  if (!files.length) { setStatus('Сначала выберите файл.', 'err'); return; }
+  if (pc) { try { pc.close(); } catch {} pc = null; }
+
   isSender = true;
   $('createOfferBtn').disabled = true;
   setStatus('Сбор сетевых кандидатов...', 'wait');
 
   try {
-    createPeerConnection();
-    sendChannel = pc.createDataChannel('fileTransfer', { ordered: true });
+    pc = new RTCPeerConnection(RTC_CONFIG);
+
+    sendChannel = pc.createDataChannel('file', { ordered: true });
     sendChannel.binaryType = 'arraybuffer';
     setupSendChannel(sendChannel);
 
-    let iceDone = false;
     pc.onicecandidate = e => {
       if (e.candidate) {
-        $('localOffer').value = b64encode(pc.localDescription);
+        $('localOffer').value = b64enc(pc.localDescription);
       } else {
-        iceDone = true;
-        $('localOffer').value = b64encode(pc.localDescription);
-        setStatus('Код приглашения готов! Скопируйте его или покажите QR.', 'ok');
+        $('localOffer').value = b64enc(pc.localDescription);
+        setStatus('Код приглашения готов. Передайте его получателю.', 'ok');
       }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'connected') setStatus('Соединение установлено!', 'ok');
+      if (pc.connectionState === 'failed') setStatus('Соединение не установилось. Проверьте сеть / TURN.', 'err');
     };
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    $('offerRow').style.display = 'flex';
-    $('offerQrRow').style.display = 'flex';
-    $('offerHint').style.display = 'block';
-    $('localOffer').value = b64encode(pc.localDescription);
+    $('offerBox').style.display = 'block';
+    $('localOffer').value = b64enc(pc.localDescription);
 
+    // страховка: показать код через 3 сек, даже если ICE ещё собирается
     setTimeout(() => {
-      if (!iceDone) {
-        $('localOffer').value = b64encode(pc.localDescription);
-        setStatus('Код сформирован (кандидаты собираются в фоне). Можно копировать.', 'wait');
+      if (pc && pc.localDescription) {
+        $('localOffer').value = b64enc(pc.localDescription);
+        $('answerBox').style.display = 'block';
       }
     }, 3000);
+
+    // показываем поле для ответа сразу
+    $('answerBox').style.display = 'block';
   } catch (err) {
-    setStatus('Ошибка создания Offer: ' + err.message, 'err');
+    setStatus('Ошибка: ' + err.message, 'err');
     $('createOfferBtn').disabled = false;
   }
 });
 
-/* ---------- Шаг 2: Answer ---------- */
+/* ---------- Приём Offer, создание Answer ---------- */
 $('acceptOfferBtn').addEventListener('click', async () => {
   const text = $('remoteOffer').value.trim();
   if (!text) { setStatus('Вставьте код приглашения.', 'err'); return; }
+  if (pc) { try { pc.close(); } catch {} pc = null; }
 
-  resetAll(true);
   isSender = false;
   $('acceptOfferBtn').disabled = true;
   setStatus('Обработка кода приглашения...', 'wait');
 
   try {
-    const desc = b64decode(text);
-    if (!desc.type || desc.type !== 'offer') throw new Error('Это не код приглашения (ожидался offer).');
+    const desc = b64dec(text);
+    if (desc.type !== 'offer') throw new Error('Это не код приглашения.');
 
-    createPeerConnection();
+    pc = new RTCPeerConnection(RTC_CONFIG);
 
     pc.ondatachannel = e => {
-      receiveChannel = e.channel;
-      receiveChannel.binaryType = 'arraybuffer';
-      setupReceiveChannel(receiveChannel);
+      const ch = e.channel;
+      ch.binaryType = 'arraybuffer';
+      setupReceiveChannel(ch);
     };
 
-    let iceDone = false;
     pc.onicecandidate = e => {
       if (e.candidate) {
-        $('localAnswer').value = b64encode(pc.localDescription);
+        $('localAnswer').value = b64enc(pc.localDescription);
       } else {
-        iceDone = true;
-        $('localAnswer').value = b64encode(pc.localDescription);
-        setStatus('Ответный код готов! Скопируйте и передайте отправителю.', 'ok');
+        $('localAnswer').value = b64enc(pc.localDescription);
+        setStatus('Ответный код готов. Передайте его отправителю.', 'ok');
       }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'connected') setStatus('Соединение установлено!', 'ok');
+      if (pc.connectionState === 'failed') setStatus('Соединение не установилось.', 'err');
     };
 
     await pc.setRemoteDescription(new RTCSessionDescription(desc));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    $('answerRow').style.display = 'flex';
-    $('answerQrRow').style.display = 'flex';
-    $('answerHint').style.display = 'block';
-    $('localAnswer').value = b64encode(pc.localDescription);
+    $('answerOutBox').style.display = 'block';
+    $('localAnswer').value = b64enc(pc.localDescription);
 
     setTimeout(() => {
-      if (!iceDone) {
-        $('localAnswer').value = b64encode(pc.localDescription);
-        setStatus('Ответный код сформирован. Можно копировать.', 'wait');
-      }
+      if (pc && pc.localDescription) $('localAnswer').value = b64enc(pc.localDescription);
     }, 3000);
   } catch (err) {
-    setStatus('Ошибка обработки кода: ' + err.message, 'err');
+    setStatus('Ошибка: ' + err.message, 'err');
     $('acceptOfferBtn').disabled = false;
   }
 });
 
-/* ---------- Шаг 3: connect ---------- */
+/* ---------- Подключение по Answer ---------- */
 $('connectBtn').addEventListener('click', async () => {
   const text = $('remoteAnswer').value.trim();
   if (!text) { setStatus('Вставьте ответный код.', 'err'); return; }
-  if (!pc) { setStatus('Сначала выполните Шаг 1.', 'err'); return; }
+  if (!pc) { setStatus('Сначала создайте код приглашения.', 'err'); return; }
 
   $('connectBtn').disabled = true;
-  setStatus('Установка прямого соединения...', 'wait');
+  setStatus('Установка соединения...', 'wait');
 
   try {
-    const desc = b64decode(text);
-    if (!desc.type || desc.type !== 'answer') throw new Error('Это не ответный код (ожидался answer).');
+    const desc = b64dec(text);
+    if (desc.type !== 'answer') throw new Error('Это не ответный код.');
     await pc.setRemoteDescription(new RTCSessionDescription(desc));
   } catch (err) {
-    setStatus('Ошибка подключения: ' + err.message, 'err');
+    setStatus('Ошибка: ' + err.message, 'err');
     $('connectBtn').disabled = false;
   }
 });
 
 /* =====================================================================
-   ОТПРАВКА (с поддержкой resume)
+   ОТПРАВКА
    ===================================================================== */
 function setupSendChannel(ch) {
-  ch.onopen = async () => {
-    setBadge(true);
-    if (!filesToSend.length) {
-      setStatus('Соединение установлено, но файлы не выбраны.', 'wait');
-      return;
-    }
-    setStatus('Соединение открыто. Отправка файлов...', 'ok');
-    resumeBanner.style.display = 'none';
-    // ждём сообщение resume от получателя (до 500 мс), иначе стартуем с 0
-    setTimeout(() => {
-      if (!transferDone && transferSent === 0) sendAllFiles();
-    }, 500);
-  };
-  ch.onclose = () => { setBadge(false); setStatus('Канал передачи закрыт.', 'wait'); showResumeHint(); };
-  ch.onerror = e => { setStatus('Ошибка канала: ' + (e.message || 'неизвестно'), 'err'); showResumeHint(); };
   ch.bufferedAmountLowThreshold = BUFFER_LOW;
 
-  ch.onmessage = e => {
-    if (typeof e.data !== 'string') return;
-    let msg;
-    try { msg = JSON.parse(e.data); } catch { return; }
-    if (msg.type === 'resume') {
-      // получатель просит продолжить с определённого файла/байта
-      setStatus(`Получатель просит продолжить с файла ${msg.fileIndex + 1}, байт ${msg.offset}.`, 'wait');
-      sendAllFiles(msg.fileIndex, msg.offset);
+  ch.onopen = async () => {
+    if (!files.length) {
+      setStatus('Соединение открыто, но файл не выбран.', 'wait');
+      return;
     }
+    setStatus('Соединение открыто. Отправка...', 'ok');
+    totalBytes = files.reduce((s, f) => s + f.size, 0);
+    sentBytes = 0;
+    showProgress(true);
+    setProgress(0, totalBytes);
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      ch.send(JSON.stringify({
+        type: 'meta', name: f.name, size: f.size,
+        mime: f.type || 'application/octet-stream', index: i, total: files.length
+      }));
+      await sendFileChunked(ch, f);
+    }
+    ch.send(JSON.stringify({ type: 'done' }));
+    setStatus('Все файлы отправлены.', 'ok');
+    showProgress(false);
   };
+
+  ch.onclose = () => setStatus('Соединение закрыто.', 'wait');
+  ch.onerror = e => setStatus('Ошибка канала: ' + (e.message || ''), 'err');
 }
 
-async function sendAllFiles(startFileIndex = 0, startOffset = 0) {
-  transferTotal = filesToSend.reduce((s, f) => s + f.size, 0);
-  transferSent = filesToSend.slice(0, startFileIndex).reduce((s, f) => s + f.size, 0) + startOffset;
-  showProgress(true);
-  updateProgress(transferSent, transferTotal);
-
-  for (let i = startFileIndex; i < filesToSend.length; i++) {
-    currentFileIndex = i;
-    const file = filesToSend[i];
-    const offset = i === startFileIndex ? startOffset : 0;
-    setStatus(`Отправка файла ${i + 1}/${filesToSend.length}: ${file.name} (${formatSize(file.size)})`, 'wait');
-
-    sendChannel.send(JSON.stringify({
-      type: 'meta',
-      name: file.name,
-      size: file.size,
-      mime: file.type || 'application/octet-stream',
-      index: i,
-      total: filesToSend.length,
-      resumeFrom: offset
-    }));
-
-    await sendFileChunked(file, offset);
-  }
-
-  sendChannel.send(JSON.stringify({ type: 'done' }));
-  transferDone = true;
-  setStatus(`Готово! Передано файлов: ${filesToSend.length}, всего ${formatSize(transferTotal)}.`, 'ok');
-  showProgress(false);
-}
-
-function sendFileChunked(file, startOffset = 0) {
+function sendFileChunked(ch, file) {
   return new Promise((resolve, reject) => {
-    let offset = startOffset;
+    let offset = 0;
     const reader = new FileReader();
 
     const readNext = () => {
       if (offset >= file.size) { resolve(); return; }
-      const slice = file.slice(offset, offset + CHUNK_SIZE);
-      reader.readAsArrayBuffer(slice);
+      reader.readAsArrayBuffer(file.slice(offset, offset + CHUNK_SIZE));
     };
 
     reader.onload = async e => {
       const buf = e.target.result;
       try {
-        while (sendChannel.bufferedAmount > BUFFER_HIGH) {
+        while (ch.bufferedAmount > BUFFER_HIGH) {
           await new Promise(r => {
-            const h = () => { sendChannel.removeEventListener('bufferedamountlow', h); r(); };
-            sendChannel.addEventListener('bufferedamountlow', h);
+            const h = () => { ch.removeEventListener('bufferedamountlow', h); r(); };
+            ch.addEventListener('bufferedamountlow', h);
             setTimeout(r, 200);
           });
         }
-        sendChannel.send(buf);
+        ch.send(buf);
         offset += buf.byteLength;
-        transferSent += buf.byteLength;
-        updateProgress(transferSent, transferTotal);
+        sentBytes += buf.byteLength;
+        setProgress(sentBytes, totalBytes);
         readNext();
       } catch (err) { reject(err); }
     };
@@ -955,141 +362,75 @@ function sendFileChunked(file, startOffset = 0) {
 }
 
 /* =====================================================================
-   ПРИЁМ (с сохранением в IndexedDB и возобновлением)
+   ПРИЁМ
    ===================================================================== */
 function setupReceiveChannel(ch) {
+  // сброс состояния на каждый новый канал
+  receivedChunks = [];
   receivedMeta = null;
   receivedBytes = 0;
-  receivedFromDB = 0;
-  receiverFileIndex = 0;
 
-  ch.onopen = async () => {
-    setBadge(true);
-    setStatus('Канал открыт. Проверка сохранённого прогресса...', 'ok');
-    // проверяем IndexedDB на наличие недокачанных файлов
-    const saved = await dbGetChunks(0);
-    if (saved && saved.length && saved.total > 0) {
-      // есть сохранённый прогресс — просим продолжить
-      const meta = saved.meta;
-      const offset = saved.chunks.reduce((s, c) => s + c.byteLength, 0);
-      if (offset < meta.size) {
-        resumeBanner.style.display = 'block';
-        resumeBanner.textContent = `Найден недокачанный файл «${meta.name}» (${formatSize(offset)} из ${formatSize(meta.size)}). Запрашиваем продолжение...`;
-        ch.send(JSON.stringify({ type: 'resume', fileIndex: 0, offset }));
-        receivedMeta = meta;
-        receivedBytes = offset;
-        receivedFromDB = offset;
-        receivedChunksBuffer = saved.chunks;
-        showProgress(true);
-        updateProgress(offset, meta.size);
-        return;
-      }
-    }
-    setStatus('Канал открыт. Ожидание файлов...', 'ok');
-  };
-  ch.onclose = () => { setBadge(false); setStatus('Канал закрыт.', 'wait'); showResumeHint(); };
-  ch.onerror = e => { setStatus('Ошибка канала: ' + (e.message || 'неизвестно'), 'err'); showResumeHint(); };
+  ch.onopen = () => setStatus('Соединение открыто. Ожидание файлов...', 'ok');
 
-  let receivedChunksBuffer = [];
-
-  ch.onmessage = async e => {
+  ch.onmessage = e => {
     if (typeof e.data === 'string') {
       let msg;
       try { msg = JSON.parse(e.data); } catch { return; }
+
       if (msg.type === 'meta') {
-        // если это продолжение того же файла — не сбрасываем буфер
-        const isResume = receivedMeta && receivedMeta.index === msg.index && receivedFromDB > 0;
-        if (!isResume) {
-          receivedChunksBuffer = [];
-          receivedBytes = 0;
-          receivedFromDB = 0;
-        }
+        // новый файл — сбрасываем буфер
+        receivedChunks = [];
+        receivedBytes = 0;
         receivedMeta = msg;
-        receiverFileIndex = msg.index;
         showProgress(true);
-        updateProgress(receivedBytes, msg.size);
-        setStatus(`Получение файла ${msg.index + 1}/${msg.total}: ${msg.name} (${formatSize(msg.size)})` +
-          (receivedFromDB ? ` — продолжение с ${formatSize(receivedFromDB)}` : '') + '...', 'wait');
-        // если уже всё есть — финализируем
-        if (receivedBytes >= msg.size) finalizeReceivedFile();
+        setProgress(0, msg.size);
+        setStatus(`Получение: ${msg.name} (${fmt(msg.size)})`, 'wait');
       } else if (msg.type === 'done') {
-        setStatus(`Все файлы получены.`, 'ok');
+        setStatus('Все файлы получены.', 'ok');
         showProgress(false);
       }
-    } else {
-      receivedChunksBuffer.push(e.data);
-      receivedBytes += e.data.byteLength;
-      if (receivedMeta) updateProgress(receivedBytes, receivedMeta.size);
+      return;
+    }
 
-      // периодически сохраняем в IndexedDB (каждые ~1 МБ)
-      if (receivedMeta && receivedBytes - receivedFromDB > 1024 * 1024) {
-        await dbSaveChunks(receivedMeta.index, {
-          meta: receivedMeta,
-          chunks: receivedChunksBuffer,
-          total: receivedBytes
-        });
-        receivedFromDB = receivedBytes;
-      }
+    // бинарный чанк
+    if (!receivedMeta) return;
+    receivedChunks.push(e.data);
+    receivedBytes += e.data.byteLength;
+    setProgress(receivedBytes, receivedMeta.size);
 
-      if (receivedMeta && receivedBytes >= receivedMeta.size) {
-        await finalizeReceivedFile();
-      }
+    if (receivedBytes >= receivedMeta.size) {
+      finalizeFile();
     }
   };
+
+  ch.onclose = () => setStatus('Соединение закрыто.', 'wait');
+  ch.onerror = e => setStatus('Ошибка канала: ' + (e.message || ''), 'err');
 }
 
-async function finalizeReceivedFile() {
-  const blob = new Blob(receivedChunksBuffer, { type: receivedMeta.mime });
+function finalizeFile() {
+  const meta = receivedMeta;
+  const chunks = receivedChunks.slice(); // копия, чтобы не сломать при следующем файле
+
+  const blob = new Blob(chunks, { type: meta.mime || 'application/octet-stream' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = receivedMeta.name;
-  a.textContent = `Скачать «${receivedMeta.name}» (${formatSize(receivedMeta.size)})`;
-  a.className = 'download-link';
+  a.download = meta.name;
+  a.textContent = `Скачать «${meta.name}» (${fmt(meta.size)})`;
+  a.className = 'dl';
+  resultEl.appendChild(a);
+  resultEl.appendChild(document.createElement('br'));
 
-  const wrap = document.createElement('div');
-  wrap.style.marginBottom = '8px';
-  wrap.appendChild(a);
-  resultEl.appendChild(wrap);
-
+  // пробуем авто-скачать (может не сработать без user gesture — тогда пользователь кликнет по ссылке)
   try { a.click(); } catch {}
 
-  // очищаем сохранённый прогресс этого файла
-  await dbClear();
-
-  const name = receivedMeta.name;
-  receivedMeta = null;
+  // сбрасываем состояние
+  receivedChunks = [];
   receivedBytes = 0;
-  receivedFromDB = 0;
-  receivedChunksBuffer = [];
-  resumeBanner.style.display = 'none';
-  setStatus(`Файл «${name}» получен.`, 'ok');
+  receivedMeta = null;
+  showProgress(false);
+  setStatus(`Файл «${meta.name}» получен. Ссылка на скачивание — выше.`, 'ok');
 }
-
-/* ---------- Кнопки «Копировать» ---------- */
-document.querySelectorAll('.copy-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const target = $(btn.dataset.copy);
-    if (!target.value) return;
-    await copyToClipboard(target.value);
-    const old = btn.textContent;
-    btn.textContent = 'Скопировано!';
-    setTimeout(() => btn.textContent = old, 1500);
-  });
-});
-
-/* ---------- Сброс ---------- */
-$('resetBtn').addEventListener('click', () => resetAll(false));
-$('clearResumeBtn').addEventListener('click', async () => {
-  await dbClear();
-  resumeBanner.style.display = 'none';
-  setStatus('Сохранённый прогресс очищен.', 'ok');
-});
-
-/* ---------- Глобальный обработчик ошибок ---------- */
-window.addEventListener('error', e => {
-  setStatus('Ошибка: ' + e.message, 'err');
-});
 </script>
 </body>
 </html>
