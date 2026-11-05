@@ -219,14 +219,16 @@ function speakText(text) {
 function buildUrlFromDigits(digitsStr) {
   const d = String(digitsStr).replace(/\D/g, '');
   if (d.length !== 9) return null;
-  const t0 = "AKfycbz" + d[0];
-  const t1 = "Ujv" + d[1];
-  const t2 = "a" + d[2];
-  const t3 = "iK" + d[3] + d[4];
-  const t4 = "ZoPLsPdwFGEoO_qhGHvkwtGN" + d[5];
-  const t5 = "zmgHAeGCVfPyzjlfX" + d[6];
-  const t6 = "CeII" + d[7] + d[8] + "FkuO";
-  const token = t0 + t1 + t2 + t3 + t4 + t5 + t6;
+  const token =
+    "AKfycbz" + d[0] +
+    "Ujv"     + d[1] +
+    "a"       + d[2] +
+    "iK"      + d[3] +
+    "I"       + d[4] + d[5] +
+    "ZoPLsPdwFGEoO_qhGHvkwtGN" + d[6] +
+    "zmgHAeGCVfPyzjlfX"        + d[7] +
+    "CeII"    + d[8] +
+    "FkuO";
   return "https://script.google.com/macros/s/" + token + "/exec";
 }
 
