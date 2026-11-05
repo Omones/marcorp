@@ -69,7 +69,7 @@ function showErrorToast(text) {
     }, 4000);
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ И ОБРАБОТЧИКИ СОБЫТИЙ ---
+// --- ИНИЦИАЛИЗАЦИЯ ---
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof initModalAddSelect === 'function') initModalAddSelect();
 
@@ -179,7 +179,7 @@ function fetchGoogleSpreadsheetData() {
     document.body.appendChild(script);
 }
 
-// --- УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТПРАВКИ ИЗМЕНЕНИЙ В GOOGLE ---
+// --- ОТПРАВКА ИЗМЕНЕНИЙ В GOOGLE ---
 function sendGoogleMutation(actionType, index, orderData) {
     const url = googleUrlInput.value.trim();
     if (!url) { showErrorToast('Не указан URL шлюза Google!'); return; }
@@ -206,12 +206,25 @@ function sendGoogleMutation(actionType, index, orderData) {
     document.body.appendChild(script);
 }
 
-// --- ПАРСИНГ И ФОРМАТИРОВАНИЕ ДАТ ---
-function formatDateForInput(dateStr) {
-    if (!dateStr) return "";
-    // Превращаем пробел в T (если пришло из таблицы), и обрезаем до нужного формата
-    let str = String(dateStr).replace(' ', 'T');
+// --- ПАРСИНГ И ФОРМАТИРОВАНИЕ ДАТ (Универсальные) ---
+function formatDateForInput(dateVal) {
+    if (!dateVal) return "";
+    if (dateVal instanceof Date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${dateVal.getFullYear()}-${pad(dateVal.getMonth() + 1)}-${pad(dateVal.getDate())}T${pad(dateVal.getHours())}:${pad(dateVal.getMinutes())}`;
+    }
+    let str = String(dateVal).replace(' ', 'T');
     if (str.length > 16) str = str.slice(0, 16);
+    return str;
+}
+
+function formatDateOnly(dateVal) {
+    if (!dateVal) return "";
+    if (dateVal instanceof Date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${dateVal.getFullYear()}-${pad(dateVal.getMonth() + 1)}-${pad(dateVal.getDate())}`;
+    }
+    let str = String(dateVal).replace(' ', 'T').split('T')[0].slice(0, 10);
     return str;
 }
 
@@ -230,7 +243,8 @@ function parseGoogleDataArray(matrix) {
         if (!row || row.length < 3) continue;
 
         const date = formatDateForInput(row[0]);
-        const deliveryDate = formatDateForInput(row[1]);
+        const deliveryDate = formatDateOnly(row[1]);
+        
         const customerName = row[2] ? String(row[2]).trim() : "";
         const total = parseFloat(row[3]) || 0;
         const shipping = parseFloat(row[4]) || 0;
@@ -304,7 +318,7 @@ function openOrderModal(index) {
         modalShippingInput.value = order.shipping;
         
         modalDateInput.value = formatDateForInput(order.date);
-        modalDeliveryDateInput.value = order.deliveryDate ? String(order.deliveryDate).split('T')[0] : "";
+        modalDeliveryDateInput.value = formatDateOnly(order.deliveryDate);
         
         modalStatusSelect.value = order.status;
         modalCommentsTextarea.value = order.comments || "";
