@@ -644,8 +644,34 @@ function updateTaskInline(id, el, field) {
 
 function updateTaskDeadlineInline(id, val) {
     const task = currentTasks.find(t => t.id === id); if (!task) return;
+    
     const formatted = val ? val.replace('T', ' ') + ':00' : null;
     task.deadline = formatted;
+
+    // Мгновенно обновляем визуал (рамку)
+    const card = cardEl(id);
+    if (card) {
+        const isOverdue = formatted && new Date(formatted) < new Date();
+        const dateInput = card.querySelector('input[type="datetime-local"]');
+        
+        if (isOverdue) {
+            card.classList.add('overdue');
+            card.style.borderColor = 'var(--overdue-border)';
+            if (dateInput) {
+                dateInput.style.color = '#ff4a6b';
+                dateInput.style.borderColor = 'var(--overdue-border)';
+            }
+        } else {
+            card.classList.remove('overdue');
+            card.style.borderColor = 'transparent';
+            if (dateInput) {
+                dateInput.style.color = 'var(--text)';
+                dateInput.style.borderColor = 'var(--border)';
+            }
+        }
+    }
+
+    // Отправляем на сервер в фоне
     apiCallBg('PUT', { id: task.id, deadline: formatted });
 }
 
