@@ -242,7 +242,6 @@
         .comment-input { flex: 1; padding: 6px 10px; font-size: 12px; background: #131417; min-width: 0; min-height: 32px; max-height: 100px; overflow-y: auto; box-sizing: border-box; font-family: inherit; border: 1px solid var(--border); border-radius: 4px; outline: none; color: var(--text); }
         .comment-input:focus { border-color: var(--primary); }
 
-        /* Модалка подключения */
         .modal-overlay {
             position: fixed; inset: 0;
             background: rgba(0,0,0,.85);
@@ -314,9 +313,6 @@
 </div>
 
 <script>
-/* ============================================================
-   НАСТРОЙКИ
-   ============================================================ */
 const DEPLOYMENT_URL = 'https://script.google.com/macros/s/AKfycbxGpVq2N-vU4SPwXtJRPrC174780v6YgE5TI2ceP8IFaouenKKSEiUT6JlAU9s3pmhhEA/exec';
 const AUTH_TOKEN = 'MarcorpSecureKey2026';
 const STORAGE_KEY = 'planer_spreadsheet_id';
@@ -331,9 +327,7 @@ const PALETTE_COLORS = [
     '#7c0fb9', '#b9570f', '#0fb9b3', '#5bb90f', '#444854'
 ];
 
-/* ============================================================
-   СЕТЕВОЙ СЛОЙ (через text/plain, чтобы обойти CORS-preflight)
-   ============================================================ */
+/* ---------- Сеть ---------- */
 async function apiCall(method, payload = {}) {
     const body = Object.assign({}, payload, {
         _method: method,
@@ -349,9 +343,7 @@ async function apiCall(method, payload = {}) {
     return res.json();
 }
 
-/* ============================================================
-   МОДАЛКА ВЫБОРА ТАБЛИЦЫ
-   ============================================================ */
+/* ---------- Модалка подключения ---------- */
 function askForSpreadsheetId() {
     return new Promise(resolve => {
         const overlay = document.createElement('div');
@@ -364,8 +356,10 @@ function askForSpreadsheetId() {
                     <code>docs.google.com/spreadsheets/d/<b>ID</b>/edit</code>
                 </p>
                 <p>
-                    Таблица должна содержать листы <code>Tasks</code> и <code>Comments</code>
-                    (либо они будут созданы автоматически, если скрипт имеет право на запись).
+                    Нужен только один лист <code>Tasks</code> с колонками
+                    <code>id | title | description | deadline | status | created_at | comments</code>.
+                    Комментарии хранятся в последнем столбце в виде
+                    <code>[дата] текст</code>, по одному в строке.
                 </p>
                 <input id="ssIdInput" placeholder="1AbCdEfGh...">
                 <div class="modal-error" id="ssError"></div>
@@ -403,11 +397,8 @@ function askForSpreadsheetId() {
                 btn.disabled = false;
             }
         }
-
         btn.onclick = attempt;
-        input.addEventListener('keydown', ev => {
-            if (ev.key === 'Enter') attempt();
-        });
+        input.addEventListener('keydown', ev => { if (ev.key === 'Enter') attempt(); });
     });
 }
 
@@ -417,9 +408,7 @@ function disconnectSpreadsheet() {
     location.reload();
 }
 
-/* ============================================================
-   ПАЛИТРА И ЗВУК
-   ============================================================ */
+/* ---------- Палитра и звук ---------- */
 function initSidebarPalette() {
     const container = document.getElementById('sidebarPalette');
     container.innerHTML = '';
@@ -460,9 +449,7 @@ function playNotificationSound() {
     } catch (e) { console.error("Ошибка звука:", e); }
 }
 
-/* ============================================================
-   ЗАГРУЗКА И РЕНДЕР
-   ============================================================ */
+/* ---------- Загрузка и рендер ---------- */
 async function loadTasks() {
     try {
         const data = await apiCall('GET');
@@ -562,13 +549,13 @@ function renderTasks() {
         let commentsHtml = '';
         if (task.comments && task.comments.length > 0) {
             task.comments.forEach(c => {
-                commentsHtml += `<div class="comment-item"><div class="comment-content"><span class="comment-text">${c.text}</span><span class="comment-time">${c.time}</span></div><button class="btn-comment-del" onclick="deleteComment(${c.id})">✕</button></div>`;
+                commentsHtml += `<div class="comment-item"><div class="comment-content"><span class="comment-text">${c.text}</span><span class="comment-time">${c.time}</span></div><button class="btn-comment-del" onclick="event.stopPropagation();deleteComment(${task.id}, ${c.id})">✕</button></div>`;
             });
         }
 
         let paletteDropdownHtml = `<details class="palette-details"><summary class="palette-summary">🎨</summary><div class="palette-dropdown">`;
         PALETTE_COLORS.forEach(c => {
-            paletteDropdownHtml += `<div class="inline-cell" style="background-color: ${c};" onclick="changeTaskColor(${task.id}, '${c}')"></div>`;
+            paletteDropdownHtml += `<div class="inline-cell" style="background-color: ${c};" onclick="event.stopPropagation();changeTaskColor(${task.id}, '${c}')"></div>`;
         });
         paletteDropdownHtml += '</div></details>';
 
@@ -576,7 +563,7 @@ function renderTasks() {
             <div class="task-row">
                 <div class="task-main-info">
                     <div class="status-circle-container">
-                        <span class="status-circle ${state.checked ? 'checked' : ''}" onclick="toggleTaskStatus(${task.id})"></span>
+                        <span class="status-circle ${state.checked ? 'checked' : ''}" onclick="event.stopPropagation();toggleTaskStatus(${task.id})"></span>
                         <div class="checkbox-custom-label" contenteditable="true" placeholder="Статус..." onblur="updateTaskLabelInline(${task.id}, this)">${state.label}</div>
                     </div>
                     <div class="editable-title" contenteditable="true" onblur="updateTaskInline(${task.id}, this, 'title')">${task.title}</div>
@@ -585,14 +572,14 @@ function renderTasks() {
                 <div class="task-meta-right">
                     ${paletteDropdownHtml}
                     <input type="datetime-local" value="${localDeadline}" onchange="updateTaskDeadlineInline(${task.id}, this.value)" style="padding:3px 6px; font-size:11px; background:#131417; color:var(--text); border:1px solid var(--border); border-radius:3px; ${isOverdue ? 'color: #ff4a6b; border-color: var(--overdue-border);' : ''}">
-                    <button class="btn-action btn-del" onclick="deleteTask(${task.id})">✕</button>
+                    <button class="btn-action btn-del" onclick="event.stopPropagation();deleteTask(${task.id})">✕</button>
                 </div>
             </div>
             <div class="comments-section">
                 <div class="comments-list">${commentsHtml}</div>
                 <div class="comment-form">
                     <div class="comment-input" contenteditable="true" id="c-input-${task.id}" onkeydown="handleCommentKey(event, ${task.id})" placeholder="Комментарий..."></div>
-                    <button class="btn-comment" onclick="addComment(${task.id})">→</button>
+                    <button class="btn-comment" onclick="event.stopPropagation();addComment(${task.id})">→</button>
                 </div>
             </div>
         `;
@@ -612,9 +599,7 @@ function renderTasks() {
     if (hasNewOverdue) playNotificationSound();
 }
 
-/* ============================================================
-   ДЕЙСТВИЯ
-   ============================================================ */
+/* ---------- Действия ---------- */
 async function toggleTaskStatus(id) {
     const task = currentTasks.find(t => t.id === id); if (!task) return;
     const state = parseTaskStatus(task.status);
@@ -641,7 +626,12 @@ async function updateTaskLabelInline(id, el) {
     loadTasks();
 }
 
-function handleCommentKey(e, taskId) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(taskId); } }
+function handleCommentKey(e, taskId) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        addComment(taskId);
+    }
+}
 
 async function addTask() {
     const t = document.getElementById('title');
@@ -663,19 +653,23 @@ async function addTask() {
 
 async function addComment(taskId) {
     const input = document.getElementById(`c-input-${taskId}`);
-    if (!input.innerHTML.trim()) return;
-    await apiCall('POST', {
-        action: 'add_comment',
-        task_id: taskId,
-        comment_text: input.innerHTML.trim()
+    if (!input || !input.innerText.trim()) return;
+    await apiCall('PUT', {
+        id: taskId,
+        comment_action: 'add',
+        comment_text: input.innerText.trim()
     });
     input.innerHTML = '';
     loadTasks();
 }
 
-async function deleteComment(commentId) {
-    if (!confirm('Удалить?')) return;
-    await apiCall('DELETE', { action: 'delete_comment', id: commentId });
+async function deleteComment(taskId, commentId) {
+    if (!confirm('Удалить комментарий?')) return;
+    await apiCall('PUT', {
+        id: taskId,
+        comment_action: 'delete',
+        comment_id: commentId
+    });
     loadTasks();
 }
 
@@ -719,9 +713,7 @@ function exportToExcel() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
-/* ============================================================
-   СТАРТ
-   ============================================================ */
+/* ---------- Старт ---------- */
 (async function boot() {
     if (!SPREADSHEET_ID) {
         await askForSpreadsheetId();
