@@ -1,1 +1,735 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мини Таск-Трекер Pro</title>
+    <style>
+        :root {
+            --bg: #131417;
+            --card: #1e1f25;
+            --primary: #b90f2d;
+            --text: #ffffff;
+            --text-secondary: #a0a5ad;
+            --border: #2a2b30;
+            --overdue-bg: #2a1418;
+            --overdue-border: #9c1c26;
+            --excel-bg: #1f7246;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+        .app-layout {
+            display: flex;
+            gap: 15px;
+            max-width: 1500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .sidebar { flex: 0 0 280px; }
+        .main-content { flex: 1; min-width: 0; }
+        h2, h3 {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--card);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            position: sticky;
+            top: 15px;
+        }
+        .rich-input {
+            background: #131417;
+            color: var(--text);
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            min-height: 34px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .rich-input[placeholder]:empty:before {
+            content: attr(placeholder);
+            color: var(--text-secondary);
+        }
+        .rich-input:focus { border-color: var(--primary); }
+        .palette-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin: 4px 0;
+        }
+        .palette-cell {
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .palette-cell:hover, .palette-cell.selected {
+            transform: scale(1.05);
+            border-color: var(--text);
+        }
+        input[type="datetime-local"], select {
+            background: #131417;
+            color: var(--text);
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            background: var(--card);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .toolbar h2 { margin: 0; }
+        .toolbar-right { display: flex; align-items: center; gap: 10px; }
+        .btn-excel { background: var(--excel-bg); padding: 8px 12px; font-size: 13px; }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        .task-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .task-card {
+            background: var(--card);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        .task-card.overdue { border-color: var(--overdue-border) !important; background-image: linear-gradient(rgba(255,0,0,0.04), rgba(255,0,0,0.04)); }
+        .task-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+        }
+        .task-main-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        .status-circle-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .status-circle {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid var(--text-secondary);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            display: inline-block;
+            box-sizing: border-box;
+        }
+        .status-circle.checked {
+            background: #23a95c;
+            border-color: #23a95c;
+            position: relative;
+        }
+        .status-circle.checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 2px;
+            width: 4px;
+            height: 7px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        .checkbox-custom-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+            padding: 2px 4px;
+            border-radius: 4px;
+            min-width: 50px;
+            max-width: 90px;
+            outline: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .checkbox-custom-label:focus {
+            background: #131417;
+            border-color: var(--border);
+            max-width: 150px;
+            white-space: normal;
+        }
+        .editable-title { font-size: 14px; font-weight: bold; border: 1px solid transparent; padding: 2px 4px; border-radius: 4px; min-width: 150px; max-width: 250px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; outline: none; }
+        .editable-desc { font-size: 13px; color: var(--text-secondary); border: 1px solid transparent; padding: 2px 4px; border-radius: 4px; flex: 1; min-width: 0; outline: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .task-card.active .editable-desc { white-space: pre-wrap; overflow: visible; word-break: break-all; }
+        .editable-title:focus, .editable-desc:focus { background: #131417; border-color: var(--border); overflow: visible; white-space: pre-wrap; }
 
+        .task-meta-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; position: relative; }
+        .btn-del { background: var(--primary); padding: 4px 8px; font-size: 11px; border-radius: 4px; }
+
+        .palette-details { position: relative; display: inline-block; }
+        .palette-summary { list-style: none; background: #3a3b45; padding: 4px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; user-select: none; }
+        .palette-summary::-webkit-details-marker { display: none; }
+        .palette-dropdown { position: absolute; top: 28px; right: 0; background: #20222a; border: 1px solid #3e424c; padding: 6px; border-radius: 6px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; z-index: 110; box-shadow: 0 6px 16px rgba(0,0,0,0.6); }
+        .inline-cell { width: 18px; height: 18px; border-radius: 3px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
+        .inline-cell:hover { transform: scale(1.1); border-color: var(--text); }
+
+        .comments-section {
+            margin-top: 4px;
+            padding-top: 6px;
+            border-top: 1px dashed #25262c;
+            display: none;
+            width: 100%;
+            resize: vertical;
+            overflow: auto;
+            min-height: 150px;
+        }
+        .task-card.active .comments-section { display: flex; flex-direction: column; justify-content: space-between; width: 100%; }
+        .comments-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; flex-grow: 1; max-height: 400px; overflow-y: auto; }
+        .comment-item { font-size: 12px; background: #131417; padding: 4px 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .comment-content { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+        .comment-text { color: var(--text); word-break: break-all; white-space: pre-wrap; }
+        .comment-time { color: var(--text-secondary); font-size: 10px; flex-shrink: 0; }
+        .btn-comment-del { background: none; color: var(--text-secondary); border: none; padding: 0 2px; font-size: 11px; cursor: pointer; }
+        .btn-comment-del:hover { color: var(--primary); }
+        .comment-form { display: flex; gap: 6px; width: 100%; align-items: flex-end; margin-top: auto; }
+        .comment-input { flex: 1; padding: 6px 10px; font-size: 12px; background: #131417; min-width: 0; min-height: 32px; max-height: 100px; overflow-y: auto; box-sizing: border-box; font-family: inherit; border: 1px solid var(--border); border-radius: 4px; outline: none; color: var(--text); }
+        .comment-input:focus { border-color: var(--primary); }
+
+        /* Модалка подключения */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+        }
+        .modal-box {
+            background: var(--card);
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 480px;
+            width: calc(100% - 40px);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .modal-box h3 { margin-top: 0; }
+        .modal-box p { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+        .modal-box code { background: #131417; padding: 1px 5px; border-radius: 3px; }
+        .modal-box input {
+            width: 100%;
+            padding: 10px;
+            background: #131417;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 13px;
+            outline: none;
+        }
+        .modal-box input:focus { border-color: var(--primary); }
+        .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+        .modal-actions button { flex: 1; }
+        .modal-error { color: #ff4a6b; font-size: 12px; margin-top: 10px; min-height: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="app-layout">
+    <div class="sidebar">
+        <h3>➕ Новая задача</h3>
+        <div class="form-group">
+            <div id="title" class="rich-input" contenteditable="true" placeholder="Название задачи"></div>
+            <div id="desc" class="rich-input" contenteditable="true" placeholder="Краткое описание" style="min-height: 60px;"></div>
+            <input type="datetime-local" id="deadline">
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: -4px;">Цвет карточки:</div>
+            <div class="palette-container" id="sidebarPalette"></div>
+            <input type="hidden" id="taskColor" value="">
+            <button onclick="addTask()">Создать</button>
+            <button class="btn-ghost" onclick="disconnectSpreadsheet()" title="Забыть таблицу и ввести другую">Сменить таблицу</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="toolbar">
+            <h2>🎯 Панель задач</h2>
+            <div class="toolbar-right">
+                <button class="btn-excel" onclick="exportToExcel()">Выгрузить в Excel</button>
+                <select id="sortSelect" onchange="sortAndRenderTasks()">
+                    <option value="deadline_asc" selected>Ближайший дедлайн</option>
+                    <option value="deadline_desc">Поздний дедлайн</option>
+                    <option value="id_desc">Сначала новые</option>
+                    <option value="id_asc">Сначала старые</option>
+                    <option value="title_asc">По алфавиту (А-Я)</option>
+                </select>
+            </div>
+        </div>
+        <div id="taskList" class="task-list"></div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   НАСТРОЙКИ
+   ============================================================ */
+const DEPLOYMENT_URL = 'https://script.google.com/macros/s/AKfycbxGpVq2N-vU4SPwXtJRPrC174780v6YgE5TI2ceP8IFaouenKKSEiUT6JlAU9s3pmhhEA/exec';
+const AUTH_TOKEN = 'MarcorpSecureKey2026';
+const STORAGE_KEY = 'planer_spreadsheet_id';
+
+let SPREADSHEET_ID = localStorage.getItem(STORAGE_KEY) || '';
+let currentTasks = [];
+let activeTaskId = null;
+let playedDeadlines = new Set();
+
+const PALETTE_COLORS = [
+    '#1e1f25', '#b90f2d', '#1f7246', '#0f6cb9', '#b98c0f',
+    '#7c0fb9', '#b9570f', '#0fb9b3', '#5bb90f', '#444854'
+];
+
+/* ============================================================
+   СЕТЕВОЙ СЛОЙ (через text/plain, чтобы обойти CORS-preflight)
+   ============================================================ */
+async function apiCall(method, payload = {}) {
+    const body = Object.assign({}, payload, {
+        _method: method,
+        token: AUTH_TOKEN,
+        spreadsheetId: SPREADSHEET_ID
+    });
+    const res = await fetch(DEPLOYMENT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body),
+        redirect: 'follow'
+    });
+    return res.json();
+}
+
+/* ============================================================
+   МОДАЛКА ВЫБОРА ТАБЛИЦЫ
+   ============================================================ */
+function askForSpreadsheetId() {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal-box">
+                <h3>Подключение Google-таблицы</h3>
+                <p>
+                    Вставьте ID таблицы из её URL:<br>
+                    <code>docs.google.com/spreadsheets/d/<b>ID</b>/edit</code>
+                </p>
+                <p>
+                    Таблица должна содержать листы <code>Tasks</code> и <code>Comments</code>
+                    (либо они будут созданы автоматически, если скрипт имеет право на запись).
+                </p>
+                <input id="ssIdInput" placeholder="1AbCdEfGh...">
+                <div class="modal-error" id="ssError"></div>
+                <div class="modal-actions">
+                    <button id="ssSave">Подключить</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const input = overlay.querySelector('#ssIdInput');
+        const err = overlay.querySelector('#ssError');
+        const btn = overlay.querySelector('#ssSave');
+        input.focus();
+
+        async function attempt() {
+            const val = input.value.trim();
+            if (!val) return;
+            err.textContent = 'Проверяем...';
+            btn.disabled = true;
+            const prev = SPREADSHEET_ID;
+            SPREADSHEET_ID = val;
+            try {
+                const data = await apiCall('GET');
+                if (data && data.error) {
+                    err.textContent = data.error;
+                    SPREADSHEET_ID = prev;
+                    btn.disabled = false;
+                    return;
+                }
+                localStorage.setItem(STORAGE_KEY, val);
+                overlay.remove();
+                resolve(val);
+            } catch (e) {
+                err.textContent = 'Сетевая ошибка: ' + e.message;
+                SPREADSHEET_ID = prev;
+                btn.disabled = false;
+            }
+        }
+
+        btn.onclick = attempt;
+        input.addEventListener('keydown', ev => {
+            if (ev.key === 'Enter') attempt();
+        });
+    });
+}
+
+function disconnectSpreadsheet() {
+    if (!confirm('Забыть текущую таблицу и ввести другую?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+}
+
+/* ============================================================
+   ПАЛИТРА И ЗВУК
+   ============================================================ */
+function initSidebarPalette() {
+    const container = document.getElementById('sidebarPalette');
+    container.innerHTML = '';
+    PALETTE_COLORS.forEach((color, idx) => {
+        const cell = document.createElement('div');
+        cell.className = 'palette-cell';
+        cell.style.backgroundColor = color;
+        if (idx === 0) cell.classList.add('selected');
+        cell.onclick = () => {
+            document.querySelectorAll('.palette-cell').forEach(c => c.classList.remove('selected'));
+            cell.classList.add('selected');
+            document.getElementById('taskColor').value = color;
+        };
+        container.appendChild(cell);
+    });
+    document.getElementById('taskColor').value = PALETTE_COLORS[0];
+}
+
+function playNotificationSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine'; osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        gain1.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+        osc1.connect(gain1); gain1.connect(audioCtx.destination);
+        osc1.start(); osc1.stop(audioCtx.currentTime + 0.15);
+        setTimeout(() => {
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine'; osc2.frequency.setValueAtTime(880.00, audioCtx.currentTime);
+            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            osc2.connect(gain2); gain2.connect(audioCtx.destination);
+            osc2.start(); osc2.stop(audioCtx.currentTime + 0.4);
+        }, 120);
+    } catch (e) { console.error("Ошибка звука:", e); }
+}
+
+/* ============================================================
+   ЗАГРУЗКА И РЕНДЕР
+   ============================================================ */
+async function loadTasks() {
+    try {
+        const data = await apiCall('GET');
+        if (data && data.error) {
+            if (String(data.error).toLowerCase().includes('cannot open')) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+                return;
+            }
+            console.error(data.error);
+            return;
+        }
+        currentTasks = Array.isArray(data) ? data : [];
+        sortAndRenderTasks();
+    } catch (e) { console.error(e); }
+}
+
+function sortAndRenderTasks() {
+    const sortBy = document.getElementById('sortSelect').value;
+    currentTasks.sort((a, b) => {
+        if (sortBy === 'id_desc') return b.id - a.id;
+        if (sortBy === 'id_asc') return a.id - b.id;
+        if (sortBy === 'title_asc') return a.title.localeCompare(b.title);
+        if (sortBy === 'deadline_asc') {
+            if (!a.deadline) return 1; if (!b.deadline) return -1;
+            return new Date(a.deadline) - new Date(b.deadline);
+        }
+        if (sortBy === 'deadline_desc') {
+            if (!a.deadline) return 1; if (!b.deadline) return -1;
+            return new Date(b.deadline) - new Date(a.deadline);
+        }
+        return 0;
+    });
+    renderTasks();
+}
+
+function parseTaskStatus(statusStr) {
+    const defaultObj = { color: '#1e1f25', checked: false, label: '' };
+    if (!statusStr) return defaultObj;
+    if (statusStr.startsWith('#') && !statusStr.includes('|')) {
+        const isDone = statusStr.endsWith('_done');
+        return { color: statusStr.replace('_done', ''), checked: isDone, label: '' };
+    }
+    const parts = statusStr.split('|');
+    return {
+        color: parts[0] || '#1e1f25',
+        checked: parts[1] === '1',
+        label: parts[2] || ''
+    };
+}
+
+function renderTasks() {
+    const activeInput = document.activeElement;
+    let savedCommentText = ''; let savedInputTaskId = null;
+
+    if (activeInput && activeInput.classList.contains('comment-input')) {
+        savedInputTaskId = parseInt(activeInput.id.replace('c-input-', ''));
+        savedCommentText = activeInput.innerHTML;
+    }
+
+    const container = document.getElementById('taskList'); container.innerHTML = '';
+    const now = new Date(); let hasNewOverdue = false;
+
+    currentTasks.forEach(task => {
+        const card = document.createElement('div');
+        const state = parseTaskStatus(task.status);
+        const isOverdue = task.deadline && new Date(task.deadline) < now;
+
+        if (isOverdue && !state.checked && !playedDeadlines.has(task.id)) {
+            hasNewOverdue = true; playedDeadlines.add(task.id);
+        }
+
+        let cardClass = 'task-card';
+        if (activeTaskId === task.id) cardClass += ' active';
+        card.className = cardClass;
+
+        card.style.backgroundColor = state.color;
+        card.style.borderColor = isOverdue ? 'var(--overdue-border)' : 'transparent';
+
+        card.onclick = (e) => {
+            if (e.target.closest('.task-meta-right') || e.target.closest('.comments-section') || e.target.closest('.status-circle') || e.target.closest('.palette-dropdown')) return;
+            if (card.classList.contains('active') && (e.target.closest('.editable-title') || e.target.closest('.editable-desc') || e.target.closest('.checkbox-custom-label'))) {
+                return;
+            }
+            const isAlreadyActive = card.classList.contains('active');
+            document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
+            if (!isAlreadyActive) {
+                card.classList.add('active');
+                activeTaskId = task.id;
+            } else {
+                activeTaskId = null;
+            }
+        };
+
+        const localDeadline = task.deadline ? task.deadline.replace(' ', 'T').substring(0, 16) : '';
+
+        let commentsHtml = '';
+        if (task.comments && task.comments.length > 0) {
+            task.comments.forEach(c => {
+                commentsHtml += `<div class="comment-item"><div class="comment-content"><span class="comment-text">${c.text}</span><span class="comment-time">${c.time}</span></div><button class="btn-comment-del" onclick="deleteComment(${c.id})">✕</button></div>`;
+            });
+        }
+
+        let paletteDropdownHtml = `<details class="palette-details"><summary class="palette-summary">🎨</summary><div class="palette-dropdown">`;
+        PALETTE_COLORS.forEach(c => {
+            paletteDropdownHtml += `<div class="inline-cell" style="background-color: ${c};" onclick="changeTaskColor(${task.id}, '${c}')"></div>`;
+        });
+        paletteDropdownHtml += '</div></details>';
+
+        card.innerHTML = `
+            <div class="task-row">
+                <div class="task-main-info">
+                    <div class="status-circle-container">
+                        <span class="status-circle ${state.checked ? 'checked' : ''}" onclick="toggleTaskStatus(${task.id})"></span>
+                        <div class="checkbox-custom-label" contenteditable="true" placeholder="Статус..." onblur="updateTaskLabelInline(${task.id}, this)">${state.label}</div>
+                    </div>
+                    <div class="editable-title" contenteditable="true" onblur="updateTaskInline(${task.id}, this, 'title')">${task.title}</div>
+                    <div class="editable-desc" contenteditable="true" onblur="updateTaskInline(${task.id}, this, 'description')">${task.description || ''}</div>
+                </div>
+                <div class="task-meta-right">
+                    ${paletteDropdownHtml}
+                    <input type="datetime-local" value="${localDeadline}" onchange="updateTaskDeadlineInline(${task.id}, this.value)" style="padding:3px 6px; font-size:11px; background:#131417; color:var(--text); border:1px solid var(--border); border-radius:3px; ${isOverdue ? 'color: #ff4a6b; border-color: var(--overdue-border);' : ''}">
+                    <button class="btn-action btn-del" onclick="deleteTask(${task.id})">✕</button>
+                </div>
+            </div>
+            <div class="comments-section">
+                <div class="comments-list">${commentsHtml}</div>
+                <div class="comment-form">
+                    <div class="comment-input" contenteditable="true" id="c-input-${task.id}" onkeydown="handleCommentKey(event, ${task.id})" placeholder="Комментарий..."></div>
+                    <button class="btn-comment" onclick="addComment(${task.id})">→</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+
+        if (savedInputTaskId === task.id) {
+            const restoredInput = document.getElementById(`c-input-${task.id}`);
+            if (restoredInput) {
+                restoredInput.innerHTML = savedCommentText; restoredInput.focus();
+                const range = document.createRange(); const sel = window.getSelection();
+                range.selectNodeContents(restoredInput); range.collapse(false);
+                sel.removeAllRanges(); sel.addRange(range);
+            }
+        }
+    });
+
+    if (hasNewOverdue) playNotificationSound();
+}
+
+/* ============================================================
+   ДЕЙСТВИЯ
+   ============================================================ */
+async function toggleTaskStatus(id) {
+    const task = currentTasks.find(t => t.id === id); if (!task) return;
+    const state = parseTaskStatus(task.status);
+    const newStatus = `${state.color}|${state.checked ? '0' : '1'}|${state.label}`;
+    await apiCall('PUT', { id: id, status: newStatus });
+    loadTasks();
+}
+
+async function changeTaskColor(id, colorValue) {
+    if (!colorValue) return;
+    const task = currentTasks.find(t => t.id === id); if (!task) return;
+    const state = parseTaskStatus(task.status);
+    const newStatus = `${colorValue}|${state.checked ? '1' : '0'}|${state.label}`;
+    await apiCall('PUT', { id: id, status: newStatus });
+    loadTasks();
+}
+
+async function updateTaskLabelInline(id, el) {
+    const task = currentTasks.find(t => t.id === id); if (!task) return;
+    const state = parseTaskStatus(task.status);
+    const cleanLabel = el.innerText.trim().replace(/\|/g, '');
+    const newStatus = `${state.color}|${state.checked ? '1' : '0'}|${cleanLabel}`;
+    await apiCall('PUT', { id: id, status: newStatus });
+    loadTasks();
+}
+
+function handleCommentKey(e, taskId) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(taskId); } }
+
+async function addTask() {
+    const t = document.getElementById('title');
+    const d = document.getElementById('desc');
+    const dl = document.getElementById('deadline');
+    const c = document.getElementById('taskColor').value || PALETTE_COLORS[0];
+    if (!t.innerHTML.trim()) return alert('Заполните заголовок!');
+    const initialStatus = `${c}|0|`;
+    await apiCall('POST', {
+        title: t.innerHTML,
+        description: d.innerHTML,
+        deadline: dl.value,
+        status: initialStatus
+    });
+    t.innerHTML = ''; d.innerHTML = ''; dl.value = '';
+    initSidebarPalette();
+    loadTasks();
+}
+
+async function addComment(taskId) {
+    const input = document.getElementById(`c-input-${taskId}`);
+    if (!input.innerHTML.trim()) return;
+    await apiCall('POST', {
+        action: 'add_comment',
+        task_id: taskId,
+        comment_text: input.innerHTML.trim()
+    });
+    input.innerHTML = '';
+    loadTasks();
+}
+
+async function deleteComment(commentId) {
+    if (!confirm('Удалить?')) return;
+    await apiCall('DELETE', { action: 'delete_comment', id: commentId });
+    loadTasks();
+}
+
+async function updateTaskInline(id, el, field) {
+    const task = currentTasks.find(t => t.id === id); if (!task) return;
+    let val = el.innerHTML;
+    if (field === 'title' && !el.innerText.trim()) { el.innerHTML = task.title; return alert('Заголовок пуст!'); }
+    task[field] = val;
+    await apiCall('PUT', { id: task.id, [field]: val });
+    loadTasks();
+}
+
+async function updateTaskDeadlineInline(id, val) {
+    const task = currentTasks.find(t => t.id === id); if (!task) return;
+    const formatted = val ? val.replace('T', ' ') + ':00' : null;
+    task.deadline = formatted;
+    await apiCall('PUT', { id: task.id, deadline: formatted });
+    loadTasks();
+}
+
+async function deleteTask(id) {
+    if (!confirm('Удалить?')) return;
+    await apiCall('DELETE', { id: id });
+    loadTasks();
+}
+
+function exportToExcel() {
+    let csvContent = "\uFEFFID;Название;Описание;Дедлайн;Чекбокс;Статус-Текст;Комментарии\n";
+    currentTasks.forEach(task => {
+        let commTexts = [];
+        if (task.comments) task.comments.forEach(c => commTexts.push(`[${c.time}] ${c.text.replace(/<[^>]*>/g, '')}`));
+        let cleanTitle = (task.title || "").replace(/<[^>]*>/g, '');
+        let cleanDesc = (task.description || "").replace(/<[^>]*>/g, '');
+        const state = parseTaskStatus(task.status);
+        csvContent += `${task.id};"${cleanTitle.replace(/"/g, '""')}";"${cleanDesc.replace(/"/g, '""')}";"${task.deadline || ""}";"${state.checked ? "Выбрано" : "Нет"}";"${state.label.replace(/"/g, '""')}";"${commTexts.join(" | ").replace(/"/g, '""')}"\n`;
+    });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "task_list.csv");
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+/* ============================================================
+   СТАРТ
+   ============================================================ */
+(async function boot() {
+    if (!SPREADSHEET_ID) {
+        await askForSpreadsheetId();
+    }
+    initSidebarPalette();
+    await loadTasks();
+    setInterval(() => { if (currentTasks.length > 0) loadTasks(); }, 60000);
+})();
+</script>
+</body>
+</html>
