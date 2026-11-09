@@ -24,186 +24,90 @@
             padding: 15px;
             overflow-x: hidden;
         }
-        .app-layout {
-            display: flex;
-            gap: 15px;
-            max-width: 1500px;
-            margin: 0 auto;
-            width: 100%;
-        }
+        .app-layout { display: flex; gap: 15px; max-width: 1500px; margin: 0 auto; width: 100%; }
         .sidebar { flex: 0 0 280px; }
         .main-content { flex: 1; min-width: 0; }
-        h2, h3 {
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
+        h2, h3 { font-weight: 500; letter-spacing: 0.5px; margin-top: 0; margin-bottom: 15px; font-size: 18px; }
         .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background: var(--card);
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            position: sticky;
-            top: 15px;
+            display: flex; flex-direction: column; gap: 10px;
+            background: var(--card); padding: 15px; border-radius: 6px;
+            border: 1px solid var(--border); position: sticky; top: 15px;
         }
         .rich-input {
-            background: #131417;
-            color: var(--text);
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 13px;
-            outline: none;
-            min-height: 34px;
-            box-sizing: border-box;
-            overflow-y: auto;
+            background: #131417; color: var(--text); padding: 8px 12px;
+            border: 1px solid var(--border); border-radius: 4px; font-size: 13px;
+            outline: none; min-height: 34px; box-sizing: border-box; overflow-y: auto;
         }
-        .rich-input[placeholder]:empty:before {
-            content: attr(placeholder);
-            color: var(--text-secondary);
-        }
+        .rich-input[placeholder]:empty:before { content: attr(placeholder); color: var(--text-secondary); }
         .rich-input:focus { border-color: var(--primary); }
-        .palette-container {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 6px;
-            margin: 4px 0;
-        }
+        .palette-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 4px 0; }
         .palette-cell {
-            height: 24px;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: transform 0.1s, border-color 0.1s;
+            height: 24px; border-radius: 4px; border: 1px solid var(--border);
+            cursor: pointer; transition: transform 0.1s, border-color 0.1s;
         }
-        .palette-cell:hover, .palette-cell.selected {
-            transform: scale(1.05);
-            border-color: var(--text);
-        }
+        .palette-cell:hover, .palette-cell.selected { transform: scale(1.05); border-color: var(--text); }
         input[type="datetime-local"], select {
-            background: #131417;
-            color: var(--text);
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 13px;
-            outline: none;
+            background: #131417; color: var(--text); padding: 8px 12px;
+            border: 1px solid var(--border); border-radius: 4px; font-size: 13px; outline: none;
         }
         button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 13px;
-            cursor: pointer;
-            font-weight: bold;
+            background: var(--primary); color: white; border: none; padding: 10px;
+            border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: bold;
             transition: opacity 0.2s;
         }
         button:hover { opacity: 0.9; }
         .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            background: var(--card);
-            padding: 10px 15px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; background: var(--card); padding: 10px 15px;
+            border-radius: 6px; border: 1px solid var(--border);
         }
         .toolbar h2 { margin: 0; }
         .toolbar-right { display: flex; align-items: center; gap: 10px; }
         .btn-excel { background: var(--excel-bg); padding: 8px 12px; font-size: 13px; }
         .btn-ghost {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-            padding: 8px 12px;
-            font-size: 12px;
+            background: transparent; color: var(--text-secondary);
+            border: 1px solid var(--border); padding: 8px 12px; font-size: 12px;
         }
         .task-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
         .task-card {
-            background: var(--card);
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            width: 100%;
-            box-sizing: border-box;
-            cursor: pointer;
+            background: var(--card); padding: 8px 12px; border-radius: 6px;
+            border: 1px solid var(--border); display: flex; flex-direction: column;
+            gap: 6px; width: 100%; box-sizing: border-box; cursor: pointer;
         }
         .task-card.overdue { border-color: var(--overdue-border) !important; background-image: linear-gradient(rgba(255,0,0,0.04), rgba(255,0,0,0.04)); }
         .task-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            width: 100%;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; width: 100%;
         }
         .task-main-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-            min-width: 0;
+            display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;
         }
         .status-circle-container {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
+            display: flex; align-items: center; gap: 6px; flex-shrink: 0;
         }
         .status-circle {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            border: 2px solid var(--text-secondary);
-            cursor: pointer;
+            width: 18px; height: 18px; border-radius: 50%;
+            border: 2px solid var(--text-secondary); cursor: pointer;
             transition: background 0.2s, border-color 0.2s;
-            display: inline-block;
-            box-sizing: border-box;
+            display: inline-block; box-sizing: border-box;
         }
         .status-circle.checked {
-            background: #23a95c;
-            border-color: #23a95c;
-            position: relative;
+            background: #23a95c; border-color: #23a95c; position: relative;
         }
         .status-circle.checked::after {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 2px;
-            width: 4px;
-            height: 7px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
+            content: ''; position: absolute; left: 5px; top: 2px;
+            width: 4px; height: 7px; border: solid white;
+            border-width: 0 2px 2px 0; transform: rotate(45deg);
         }
         .checkbox-custom-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            border: 1px solid transparent;
-            padding: 2px 4px;
-            border-radius: 4px;
-            min-width: 50px;
-            max-width: 90px;
-            outline: none;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            font-size: 12px; color: var(--text-secondary);
+            border: 1px solid transparent; padding: 2px 4px; border-radius: 4px;
+            min-width: 50px; max-width: 90px; outline: none;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .checkbox-custom-label:focus {
-            background: #131417;
-            border-color: var(--border);
-            max-width: 150px;
-            white-space: normal;
+            background: #131417; border-color: var(--border);
+            max-width: 150px; white-space: normal;
         }
         .editable-title { font-size: 14px; font-weight: bold; border: 1px solid transparent; padding: 2px 4px; border-radius: 4px; min-width: 150px; max-width: 250px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; outline: none; }
         .editable-desc { font-size: 13px; color: var(--text-secondary); border: 1px solid transparent; padding: 2px 4px; border-radius: 4px; flex: 1; min-width: 0; outline: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -221,14 +125,8 @@
         .inline-cell:hover { transform: scale(1.1); border-color: var(--text); }
 
         .comments-section {
-            margin-top: 4px;
-            padding-top: 6px;
-            border-top: 1px dashed #25262c;
-            display: none;
-            width: 100%;
-            resize: vertical;
-            overflow: auto;
-            min-height: 150px;
+            margin-top: 4px; padding-top: 6px; border-top: 1px dashed #25262c;
+            display: none; width: 100%; resize: vertical; overflow: auto; min-height: 150px;
         }
         .task-card.active .comments-section { display: flex; flex-direction: column; justify-content: space-between; width: 100%; }
         .comments-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; flex-grow: 1; max-height: 400px; overflow-y: auto; }
@@ -242,36 +140,12 @@
         .comment-input { flex: 1; padding: 6px 10px; font-size: 12px; background: #131417; min-width: 0; min-height: 32px; max-height: 100px; overflow-y: auto; box-sizing: border-box; font-family: inherit; border: 1px solid var(--border); border-radius: 4px; outline: none; color: var(--text); }
         .comment-input:focus { border-color: var(--primary); }
 
-        .modal-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,.85);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 9999;
-        }
-        .modal-box {
-            background: var(--card);
-            padding: 24px;
-            border-radius: 8px;
-            max-width: 480px;
-            width: calc(100% - 40px);
-            border: 1px solid var(--border);
-            color: var(--text);
-        }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .modal-box { background: var(--card); padding: 24px; border-radius: 8px; max-width: 480px; width: calc(100% - 40px); border: 1px solid var(--border); color: var(--text); }
         .modal-box h3 { margin-top: 0; }
         .modal-box p { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
         .modal-box code { background: #131417; padding: 1px 5px; border-radius: 3px; }
-        .modal-box input {
-            width: 100%;
-            padding: 10px;
-            background: #131417;
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-family: monospace;
-            font-size: 13px;
-            outline: none;
-        }
+        .modal-box input { width: 100%; padding: 10px; background: #131417; color: var(--text); border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-family: monospace; font-size: 13px; outline: none; }
         .modal-box input:focus { border-color: var(--primary); }
         .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
         .modal-actions button { flex: 1; }
@@ -327,7 +201,9 @@ const PALETTE_COLORS = [
     '#7c0fb9', '#b9570f', '#0fb9b3', '#5bb90f', '#444854'
 ];
 
-/* ---------- Сеть ---------- */
+/* ============================================================
+   Сеть
+   ============================================================ */
 async function apiCall(method, payload = {}) {
     const body = Object.assign({}, payload, {
         _method: method,
@@ -343,7 +219,14 @@ async function apiCall(method, payload = {}) {
     return res.json();
 }
 
-/* ---------- Модалка подключения ---------- */
+// Фоновая отправка без блокировки UI. Возвращает Promise, но мы его не ждём.
+function apiCallBg(method, payload = {}) {
+    return apiCall(method, payload).catch(err => console.error('bg api error', err));
+}
+
+/* ============================================================
+   Модалка подключения
+   ============================================================ */
 function askForSpreadsheetId() {
     return new Promise(resolve => {
         const overlay = document.createElement('div');
@@ -356,16 +239,12 @@ function askForSpreadsheetId() {
                     <code>docs.google.com/spreadsheets/d/<b>ID</b>/edit</code>
                 </p>
                 <p>
-                    Нужен только один лист <code>Tasks</code> с колонками
+                    Нужен лист <code>Tasks</code> с колонками
                     <code>id | title | description | deadline | status | created_at | comments</code>.
-                    Комментарии хранятся в последнем столбце в виде
-                    <code>[дата] текст</code>, по одному в строке.
                 </p>
                 <input id="ssIdInput" placeholder="1AbCdEfGh...">
                 <div class="modal-error" id="ssError"></div>
-                <div class="modal-actions">
-                    <button id="ssSave">Подключить</button>
-                </div>
+                <div class="modal-actions"><button id="ssSave">Подключить</button></div>
             </div>`;
         document.body.appendChild(overlay);
         const input = overlay.querySelector('#ssIdInput');
@@ -408,7 +287,9 @@ function disconnectSpreadsheet() {
     location.reload();
 }
 
-/* ---------- Палитра и звук ---------- */
+/* ============================================================
+   Палитра и звук
+   ============================================================ */
 function initSidebarPalette() {
     const container = document.getElementById('sidebarPalette');
     container.innerHTML = '';
@@ -449,7 +330,9 @@ function playNotificationSound() {
     } catch (e) { console.error("Ошибка звука:", e); }
 }
 
-/* ---------- Загрузка и рендер ---------- */
+/* ============================================================
+   Загрузка и полный рендер (только при старте / сортировке / F5)
+   ============================================================ */
 async function loadTasks() {
     try {
         const data = await apiCall('GET');
@@ -510,11 +393,13 @@ function renderTasks() {
         savedCommentText = activeInput.innerHTML;
     }
 
-    const container = document.getElementById('taskList'); container.innerHTML = '';
+    const container = document.getElementById('taskList');
+    container.innerHTML = '';
     const now = new Date(); let hasNewOverdue = false;
 
     currentTasks.forEach(task => {
         const card = document.createElement('div');
+        card.dataset.taskId = task.id;
         const state = parseTaskStatus(task.status);
         const isOverdue = task.deadline && new Date(task.deadline) < now;
 
@@ -525,23 +410,16 @@ function renderTasks() {
         let cardClass = 'task-card';
         if (activeTaskId === task.id) cardClass += ' active';
         card.className = cardClass;
-
         card.style.backgroundColor = state.color;
         card.style.borderColor = isOverdue ? 'var(--overdue-border)' : 'transparent';
 
         card.onclick = (e) => {
             if (e.target.closest('.task-meta-right') || e.target.closest('.comments-section') || e.target.closest('.status-circle') || e.target.closest('.palette-dropdown')) return;
-            if (card.classList.contains('active') && (e.target.closest('.editable-title') || e.target.closest('.editable-desc') || e.target.closest('.checkbox-custom-label'))) {
-                return;
-            }
+            if (card.classList.contains('active') && (e.target.closest('.editable-title') || e.target.closest('.editable-desc') || e.target.closest('.checkbox-custom-label'))) return;
             const isAlreadyActive = card.classList.contains('active');
             document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
-            if (!isAlreadyActive) {
-                card.classList.add('active');
-                activeTaskId = task.id;
-            } else {
-                activeTaskId = null;
-            }
+            if (!isAlreadyActive) { card.classList.add('active'); activeTaskId = task.id; }
+            else { activeTaskId = null; }
         };
 
         const localDeadline = task.deadline ? task.deadline.replace(' ', 'T').substring(0, 16) : '';
@@ -599,101 +477,184 @@ function renderTasks() {
     if (hasNewOverdue) playNotificationSound();
 }
 
-/* ---------- Действия ---------- */
-async function toggleTaskStatus(id) {
-    const task = currentTasks.find(t => t.id === id); if (!task) return;
-    const state = parseTaskStatus(task.status);
-    const newStatus = `${state.color}|${state.checked ? '0' : '1'}|${state.label}`;
-    await apiCall('PUT', { id: id, status: newStatus });
-    loadTasks();
+/* ============================================================
+   Точечное обновление DOM (без пересборки списка)
+   ============================================================ */
+function cardEl(taskId) {
+    return document.querySelector(`.task-card[data-task-id="${taskId}"]`);
 }
 
-async function changeTaskColor(id, colorValue) {
+function setStatusCircle(taskId, checked) {
+    const card = cardEl(taskId); if (!card) return;
+    const circle = card.querySelector('.status-circle');
+    if (!circle) return;
+    circle.classList.toggle('checked', !!checked);
+}
+
+function setCardBg(taskId, color) {
+    const card = cardEl(taskId); if (!card) return;
+    card.style.backgroundColor = color;
+}
+
+/* ============================================================
+   Действия — оптимистичные, сервер в фоне
+   ============================================================ */
+function toggleTaskStatus(id) {
+    const task = currentTasks.find(t => t.id === id); if (!task) return;
+    const state = parseTaskStatus(task.status);
+    const newChecked = !state.checked;
+    task.status = `${state.color}|${newChecked ? '1' : '0'}|${state.label}`;
+    setStatusCircle(id, newChecked);
+    apiCallBg('PUT', { id: id, status: task.status });
+}
+
+function changeTaskColor(id, colorValue) {
     if (!colorValue) return;
     const task = currentTasks.find(t => t.id === id); if (!task) return;
     const state = parseTaskStatus(task.status);
-    const newStatus = `${colorValue}|${state.checked ? '1' : '0'}|${state.label}`;
-    await apiCall('PUT', { id: id, status: newStatus });
-    loadTasks();
+    task.status = `${colorValue}|${state.checked ? '1' : '0'}|${state.label}`;
+    setCardBg(id, colorValue);
+    apiCallBg('PUT', { id: id, status: task.status });
 }
 
-async function updateTaskLabelInline(id, el) {
+function updateTaskLabelInline(id, el) {
     const task = currentTasks.find(t => t.id === id); if (!task) return;
     const state = parseTaskStatus(task.status);
     const cleanLabel = el.innerText.trim().replace(/\|/g, '');
-    const newStatus = `${state.color}|${state.checked ? '1' : '0'}|${cleanLabel}`;
-    await apiCall('PUT', { id: id, status: newStatus });
-    loadTasks();
+    task.status = `${state.color}|${state.checked ? '1' : '0'}|${cleanLabel}`;
+    apiCallBg('PUT', { id: id, status: task.status });
 }
 
 function handleCommentKey(e, taskId) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        addComment(taskId);
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(taskId); }
 }
 
-async function addTask() {
+function addTask() {
     const t = document.getElementById('title');
     const d = document.getElementById('desc');
     const dl = document.getElementById('deadline');
     const c = document.getElementById('taskColor').value || PALETTE_COLORS[0];
     if (!t.innerHTML.trim()) return alert('Заполните заголовок!');
     const initialStatus = `${c}|0|`;
-    await apiCall('POST', {
+    const payload = {
         title: t.innerHTML,
         description: d.innerHTML,
         deadline: dl.value,
         status: initialStatus
-    });
+    };
     t.innerHTML = ''; d.innerHTML = ''; dl.value = '';
     initSidebarPalette();
-    loadTasks();
+
+    // Оптимистично: добавляем во временный список и сразу рисуем, но проще
+    // дождаться ответа (нужен id от сервера). Задача одна — 0.5с не критично.
+    apiCall('POST', payload).then(res => {
+        if (res && res.id) {
+            const now = new Date();
+            currentTasks.unshift({
+                id: res.id,
+                title: payload.title,
+                description: payload.description,
+                deadline: payload.deadline ? payload.deadline.replace('T', ' ') + ':00' : null,
+                status: payload.status,
+                comments: []
+            });
+            sortAndRenderTasks();
+        }
+    }).catch(err => console.error(err));
 }
 
-async function addComment(taskId) {
+function addComment(taskId) {
     const input = document.getElementById(`c-input-${taskId}`);
     if (!input || !input.innerText.trim()) return;
-    await apiCall('PUT', {
+    const text = input.innerText.trim();
+    input.innerHTML = '';
+
+    // Оптимистично: добавляем комментарий локально
+    const task = currentTasks.find(t => t.id === taskId);
+    if (!task) return;
+    task.comments = task.comments || [];
+    const tempId = -Date.now();
+    task.comments.push({ id: tempId, text: text, time: formatNowPretty() });
+
+    const card = cardEl(taskId);
+    if (card) {
+        const list = card.querySelector('.comments-list');
+        if (list) {
+            const div = document.createElement('div');
+            div.className = 'comment-item';
+            div.innerHTML = `<div class="comment-content"><span class="comment-text">${text}</span><span class="comment-time">${formatNowPretty()}</span></div><button class="btn-comment-del" onclick="event.stopPropagation();deleteComment(${taskId}, ${tempId})">✕</button>`;
+            list.appendChild(div);
+        }
+    }
+
+    apiCallBg('PUT', {
         id: taskId,
         comment_action: 'add',
-        comment_text: input.innerText.trim()
+        comment_text: text
     });
-    input.innerHTML = '';
-    loadTasks();
 }
 
-async function deleteComment(taskId, commentId) {
+function formatNowPretty() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function deleteComment(taskId, commentId) {
     if (!confirm('Удалить комментарий?')) return;
-    await apiCall('PUT', {
+    const task = currentTasks.find(t => t.id === taskId);
+    if (task && task.comments) {
+        task.comments = task.comments.filter(c => c.id !== commentId);
+    }
+    const card = cardEl(taskId);
+    if (card) {
+        const list = card.querySelector('.comments-list');
+        if (list) {
+            const items = list.querySelectorAll('.comment-item');
+            items.forEach((it, idx) => {
+                if (idx === commentId - 1) it.remove();
+            });
+            // для tempId (отрицательный) — просто перерисуем
+            if (commentId < 0) {
+                const fresh = task && task.comments ? task.comments : [];
+                list.innerHTML = '';
+                fresh.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'comment-item';
+                    div.innerHTML = `<div class="comment-content"><span class="comment-text">${c.text}</span><span class="comment-time">${c.time}</span></div><button class="btn-comment-del" onclick="event.stopPropagation();deleteComment(${taskId}, ${c.id})">✕</button>`;
+                    list.appendChild(div);
+                });
+            }
+        }
+    }
+    apiCallBg('PUT', {
         id: taskId,
         comment_action: 'delete',
         comment_id: commentId
     });
-    loadTasks();
 }
 
-async function updateTaskInline(id, el, field) {
+function updateTaskInline(id, el, field) {
     const task = currentTasks.find(t => t.id === id); if (!task) return;
     let val = el.innerHTML;
     if (field === 'title' && !el.innerText.trim()) { el.innerHTML = task.title; return alert('Заголовок пуст!'); }
     task[field] = val;
-    await apiCall('PUT', { id: task.id, [field]: val });
-    loadTasks();
+    apiCallBg('PUT', { id: task.id, [field]: val });
 }
 
-async function updateTaskDeadlineInline(id, val) {
+function updateTaskDeadlineInline(id, val) {
     const task = currentTasks.find(t => t.id === id); if (!task) return;
     const formatted = val ? val.replace('T', ' ') + ':00' : null;
     task.deadline = formatted;
-    await apiCall('PUT', { id: task.id, deadline: formatted });
-    loadTasks();
+    apiCallBg('PUT', { id: task.id, deadline: formatted });
 }
 
-async function deleteTask(id) {
+function deleteTask(id) {
     if (!confirm('Удалить?')) return;
-    await apiCall('DELETE', { id: id });
-    loadTasks();
+    currentTasks = currentTasks.filter(t => t.id !== id);
+    const card = cardEl(id);
+    if (card) card.remove();
+    apiCallBg('DELETE', { id: id });
 }
 
 function exportToExcel() {
@@ -713,14 +674,26 @@ function exportToExcel() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
-/* ---------- Старт ---------- */
+/* ============================================================
+   Старт + тихий автоопрос (только когда вкладка видима)
+   ============================================================ */
 (async function boot() {
     if (!SPREADSHEET_ID) {
         await askForSpreadsheetId();
     }
     initSidebarPalette();
     await loadTasks();
-    setInterval(() => { if (currentTasks.length > 0) loadTasks(); }, 60000);
+
+    let lastPoll = Date.now();
+    setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        // не перезагружаем, если пользователь сейчас что-то печатает
+        const ae = document.activeElement;
+        if (ae && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+        if (Date.now() - lastPoll < 60000) return;
+        lastPoll = Date.now();
+        loadTasks();
+    }, 5000);
 })();
 </script>
 </body>
