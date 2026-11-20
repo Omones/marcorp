@@ -1,6 +1,7 @@
 let orders = [];
 let customers = [];
 let currentEditingOrderId = null;
+let companyRequisites = {}; // <--- НОВОЕ: Хранилище для реквизитов
 
 const topCreateBtn = document.getElementById('top-create-btn');
 const orderModal = document.getElementById('order-modal');
@@ -28,7 +29,7 @@ const syncGoogleBtn = document.getElementById('sync-google-btn');
 function showLoadingToast(text = "Синхронизация с Google...") {
     const container = document.getElementById('toast-container');
     if (!container) return;
-    container.innerHTML = ''; // Очищаем старые уведомления
+    container.innerHTML = ''; 
     
     const toast = document.createElement('div');
     toast.className = 'toast';
@@ -127,8 +128,51 @@ function loadDataFromSource() {
         if (typeof renderOrdersTable === 'function') renderOrdersTable();
     } else if (source === 'google') {
         fetchGoogleSpreadsheetData();
+        fetchRequisitesFromGoogle(); // <--- ДОБАВЛЕНО: Загрузка реквизитов
     }
 }
+
+// --- ЗАГРУЗКА РЕКВИЗИТОВ ИЗ GOOGLE ---
+function fetchRequisitesFromGoogle() {
+    const url = googleUrlInput.value.trim();
+    if (!url) return;
+
+    const separator = url.indexOf('?') !== -1 ? '&' : '?';
+    const jsonpUrl = url + separator + 'action=getRequisites&callback=handleRequisitesResponse&_ts=' + Date.now();
+
+    const oldScript = document.getElementById('google-requisites-script');
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = 'google-requisites-script';
+    script.src = jsonpUrl;
+    document.body.appendChild(script);
+}
+
+window.handleRequisitesResponse = function(resData) {
+    if (resData && resData.result === 'success') {
+        const d = resData.data;
+        companyRequisites = {
+            fullName: d['Полное наименование'] || 'ООО "МАРКОРП"',
+            shortName: d['Краткое наименование'] || 'ООО "МАРКОРП"',
+            inn: d['ИНН'] || '',
+            kpp: d['КПП'] || '',
+            address: d['Юр. адрес'] || '',
+            bank: d['Банк'] || '',
+            bik: d['БИК'] || '',
+            ks: d['Кс'] || '',
+            rs: d['Рс'] || '',
+            nds: d['НДС'] || 'НДС не облагается',
+            director: d['ФИО'] || ''
+        };
+        console.log("Реквизиты загружены:", companyRequisites);
+    } else {
+        console.error("Не удалось загрузить реквизиты");
+    }
+    
+    const oldScript = document.getElementById('google-requisites-script');
+    if (oldScript) oldScript.remove();
+};
 
 // --- ОТВЕТЧИКИ GOOGLE (JSONP) ---
 window.handleGoogleJsonpResponse = function(resData) {
