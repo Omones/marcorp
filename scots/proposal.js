@@ -86,7 +86,7 @@ function buildProposalData(order, orderIndex) {
     const total = rows.reduce((s, r) => s + r.sum, 0);
 
     const reqs = window.companyRequisites || {};
-
+    console.log("ПРОВЕРКА ПЕРЕД ГЕНЕРАЦИЕЙ КП:", reqs);
     return {
         number, dateStr, validUntil,
         customer: order.customer || '',
