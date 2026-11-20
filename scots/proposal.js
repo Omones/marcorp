@@ -67,7 +67,6 @@ function numberToWordsRu(num) {
 }
 
 function buildProposalData(order, orderIndex) {
-    // Используем displayId, если он есть
     const number = order.displayId || String(orderIndex + 1).padStart(3, '0');
     const dateStr = order.date
         ? new Date(order.date).toLocaleDateString('ru-RU')
@@ -86,11 +85,10 @@ function buildProposalData(order, orderIndex) {
     }));
     const total = rows.reduce((s, r) => s + r.sum, 0);
 
-    // Берем реквизиты из глобальной переменной
     const reqs = window.companyRequisites || {};
     
-    // Проверка на пустые поля
-    const safe = (val, fallback) => (val && String(val).trim() !== '') ? String(val).trim() : fallback;
+    // Выводим в консоль перед генерацией, чтобы увидеть, что реально пришло
+    console.log("Данные для КП (buildProposalData):", reqs);
 
     return {
         number, dateStr, validUntil,
@@ -98,16 +96,16 @@ function buildProposalData(order, orderIndex) {
         rows, total,
         totalWords: numberToWordsRu(total),
         company: {
-            fullName: safe(reqs.fullName, 'ООО "МАРКОРП"'),
-            address: safe(reqs.address, 'Адрес не указан'),
-            inn: safe(reqs.inn, 'ИНН не указан'),
-            kpp: safe(reqs.kpp, 'КПП не указан'),
-            bank: safe(reqs.bank, 'Банк не указан'),
-            bik: safe(reqs.bik, 'БИК не указан'),
-            ks: safe(reqs.ks, 'К/с не указан'),
-            rs: safe(reqs.rs, 'Р/с не указан'),
-            nds: safe(reqs.nds, 'НДС не облагается'),
-            director: safe(reqs.director, 'И.О. Фамилия')
+            fullName: reqs.fullName || '',
+            address: reqs.address || '',
+            inn: reqs.inn || '',
+            kpp: reqs.kpp || '',
+            bank: reqs.bank || '',
+            bik: reqs.bik || '',
+            ks: reqs.ks || '',
+            rs: reqs.rs || '',
+            nds: reqs.nds || 'НДС не облагается',
+            director: reqs.director || ''
         }
     };
 }
@@ -245,7 +243,6 @@ function buildProposalHtml(d) {
         <div><b>БИК / Р/с / К/с:</b> ${escXml(d.company.bik)} / ${escXml(d.company.rs)} / ${escXml(d.company.ks)}</div>
     `;
 
-    // Место для факсимиле
     const faxImgSrc = window.companyFaxBase64 || '';
     const faxHtml = faxImgSrc 
         ? `<img src="${faxImgSrc}" style="position:absolute; left:50px; top:-30px; width:140px; opacity:0.85; mix-blend-mode: multiply;">` 
@@ -322,7 +319,6 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
     <div style="font-size:12px; color:#666; margin-top:10px;">В настройках печати выберите <b>«Сохранить как PDF»</b> и обязательно снимите галочку <b>«Верхние и нижние колонтитулы»</b>.</div>
 </div>
 <script>
-    // Логика загрузки факсимиле прямо в окне
     document.getElementById('fax-upload-pdf').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -332,7 +328,6 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
             window.opener.companyFaxBase64 = base64;
             window.opener.localStorage.setItem('scots_fax', base64);
             
-            // Меняем картинку в текущем окне без перезагрузки
             const signDiv = document.querySelector('.sign div:last-child');
             let img = signDiv.querySelector('img');
             if (!img) {
@@ -346,7 +341,6 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
         reader.readAsDataURL(file);
     });
 
-    // Автоматический вызов печати
     window.addEventListener('load', function(){ 
         setTimeout(function(){ window.print(); }, 500); 
     });
