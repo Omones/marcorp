@@ -85,7 +85,7 @@ function buildProposalData(order, orderIndex) {
     }));
     const total = rows.reduce((s, r) => s + r.sum, 0);
 
-    // Берем реквизиты из глобальной переменной (из orders.js)
+    // Берем реквизиты из глобальной переменной
     const reqs = window.companyRequisites || {};
 
     return {
@@ -95,263 +95,141 @@ function buildProposalData(order, orderIndex) {
         totalWords: numberToWordsRu(total),
         company: {
             fullName: reqs.fullName || 'ООО "МАРКОРП"',
-            shortName: reqs.shortName || 'ООО "МАРКОРП"',
             address: reqs.address || '',
             inn: reqs.inn || '',
             kpp: reqs.kpp || '',
-            phone: reqs.phone || '',
-            director: reqs.director || '',
-            nds: reqs.nds || 'НДС не облагается'
+            bank: reqs.bank || '',
+            bik: reqs.bik || '',
+            ks: reqs.ks || '',
+            rs: reqs.rs || '',
+            nds: reqs.nds || 'НДС не облагается',
+            director: reqs.director || ''
         }
     };
 }
 
-// ============ ZIP / XLSX ============
-function crc32Table() {
-    const t = new Uint32Array(256);
-    for (let n = 0; n < 256; n++) {
-        let c = n;
-        for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-        t[n] = c >>> 0;
-    }
-    return t;
-}
-const CRC_TABLE = crc32Table();
-function crc32(bytes) {
-    let c = 0xFFFFFFFF;
-    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
-    return (c ^ 0xFFFFFFFF) >>> 0;
-}
-function u16(v){ return [v & 0xff, (v>>>8)&0xff]; }
-function u32(v){ return [v & 0xff, (v>>>8)&0xff, (v>>>16)&0xff, (v>>>24)&0xff]; }
-function u64(v){ return u32(v & 0xFFFFFFFF).concat(u32(Math.floor(v / 0x100000000))); }
-
-function zipStore(files) {
-    const enc = new TextEncoder();
-    const chunks = [];
-    const central = [];
-    let offset = 0;
-    for (const f of files) {
-        const nameBytes = enc.encode(f.name);
-        const data = f.data;
-        const crc = crc32(data);
-        const local = [
-            0x50,0x4b,0x03,0x04,
-            ...u16(20), ...u16(0x0800),
-            ...u16(0), ...u16(0),
-            ...u32(crc), ...u32(data.length), ...u32(data.length),
-            ...u16(nameBytes.length), ...u16(0)
-        ];
-        const localHeader = new Uint8Array(local);
-        chunks.push(localHeader, nameBytes, data);
-
-        const centralRec = [
-            0x50,0x4b,0x01,0x02,
-            ...u16(20), ...u16(20), ...u16(0x0800),
-            ...u16(0), ...u16(0),
-            ...u32(crc), ...u32(data.length), ...u32(data.length),
-            ...u16(nameBytes.length), ...u16(0), ...u16(0),
-            ...u16(0), ...u16(0), ...u32(0),
-            ...u32(offset)
-        ];
-        central.push({ header: new Uint8Array(centralRec), name: nameBytes });
-
-        offset += localHeader.length + nameBytes.length + data.length;
-    }
-
-    const centralStart = offset;
-    let centralSize = 0;
-    for (const c of central) {
-        chunks.push(c.header, c.name);
-        centralSize += c.header.length + c.name.length;
-    }
-    const end = new Uint8Array([
-        0x50,0x4b,0x05,0x06,
-        ...u16(0), ...u16(0),
-        ...u16(central.length), ...u16(central.length),
-        ...u32(centralSize), ...u32(centralStart),
-        ...u16(0)
-    ]);
-    chunks.push(end);
-
-    let total = 0;
-    for (const c of chunks) total += c.length;
-    const out = new Uint8Array(total);
-    let p = 0;
-    for (const c of chunks) { out.set(c, p); p += c.length; }
-    return out;
-}
-
-function colLetter(n) {
-    let s = '';
-    while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
-    return s;
-}
-function sheetXml(rows, merges, colWidths) {
-    let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-    xml += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
-
-    if (colWidths && colWidths.length) {
-        xml += '<cols>';
-        colWidths.forEach((w, i) => {
-            xml += `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`;
-        });
-        xml += '</cols>';
-    }
-
-    xml += '<sheetData>';
-    rows.forEach((row, rIdx) => {
-        const r = rIdx + 1;
-        xml += `<row r="${r}">`;
-        row.forEach((cell, cIdx) => {
-            if (cell == null) return;
-            const ref = colLetter(cIdx + 1) + r;
-            if (typeof cell === 'object' && cell.t === 'n') {
-                xml += `<c r="${ref}"><v>${cell.v}</v></c>`;
-            } else {
-                const val = (typeof cell === 'object') ? cell.v : cell;
-                xml += `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escXml(val)}</t></is></c>`;
-            }
-        });
-        xml += '</row>';
-    });
-    xml += '</sheetData>';
-
-    if (merges && merges.length) {
-        xml += `<mergeCells count="${merges.length}">`;
-        for (const m of merges) xml += `<mergeCell ref="${m}"/>`;
-        xml += '</mergeCells>';
-    }
-    xml += '</worksheet>';
-    return xml;
-}
-
+// ============ XLSX (ExcelJS) ============
 function exportOrderAsXlsx(orderIndex) {
     const order = orders[orderIndex];
     if (!order) return;
     const d = buildProposalData(order, orderIndex);
 
-    const N = (v) => ({ v: v, t: 'n' });
-    const S = (v) => (v == null || v === '') ? null : String(v);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('КП', { views: [{ showGridLines: false }] });
 
-    const rows = [];
-    const put = (r, c, v) => {
-        while (rows.length <= r) rows.push([]);
-        while (rows[r].length <= c) rows[r].push(null);
-        rows[r][c] = (typeof v === 'number') ? N(v) : S(v);
-    };
-
-    put(2, 9, `Организация: ${d.company.fullName}`);
-    if (d.company.inn) put(3, 9, `ИНН: ${d.company.inn} / КПП: ${d.company.kpp}`);
-    put(4, 9, `Адрес: ${d.company.address}`);
-
-    put(7, 1, `Коммерческое предложение № ${d.number} от ${d.dateStr}`);
-    put(11, 1, 'Кому:');
-    put(11, 5, d.customer);
-
-    const headR = 13;
-    put(headR, 1, '№');
-    put(headR, 3, 'Товары (работы, услуги)');
-    put(headR, 23, 'Кол-во');
-    put(headR, 28, 'Ед.');
-    put(headR, 31, 'Цена');
-    put(headR, 36, 'Сумма');
-
-    d.rows.forEach((r, i) => {
-        const rr = headR + 1 + i;
-        put(rr, 1, r.idx);
-        put(rr, 3, r.name);
-        put(rr, 23, r.qty);
-        put(rr, 28, r.unit);
-        put(rr, 31, r.price);
-        put(rr, 36, r.sum);
-    });
-
-    const lastItemR = headR + d.rows.length;
-    const sumR = lastItemR + 2;
-    put(sumR, 35, 'Итого:');
-    put(sumR, 36, d.total);
-    put(sumR + 1, 35, `Без налога (${d.company.nds})`);
-    put(sumR + 1, 36, '-');
-    put(sumR + 2, 35, 'Всего:');
-    put(sumR + 2, 36, d.total);
-
-    put(sumR + 3, 1, `Всего наименований ${d.rows.length}, на сумму ${fmtMoney(d.total)} руб.`);
-    put(sumR + 4, 1, d.totalWords);
-    put(sumR + 6, 1, `Предложение действует до ${d.validUntil} года.`);
-    put(sumR + 11, 1, 'Руководитель');
-    put(sumR + 11, 24, d.company.director);
-
-    const merges = [
-        `J3:U3`, `J4:U4`, `J5:U5`,
-        `F12:U12`,
-        `D${headR+1}:W${lastItemR}`,
-        `B${sumR+3}:U${sumR+3}`,
-        `B${sumR+4}:U${sumR+4}`,
+    // Ширины колонок (A=2, B=4, C=2, D=50, E=2, F=2, G=2...)
+    ws.columns = [
+        { width: 2 }, { width: 4 }, { width: 2 }, { width: 50 }, { width: 2 }, { width: 2 }, { width: 2 },
+        { width: 2 }, { width: 2 }, { width: 15 }, { width: 2 }, { width: 2 }, { width: 2 }, { width: 2 },
+        { width: 2 }, { width: 2 }, { width: 2 }, { width: 2 }, { width: 2 }, { width: 2 }, { width: 2 },
+        { width: 2 }, { width: 2 }, { width: 8 }, { width: 2 }, { width: 2 }, { width: 2 }, { width: 2 },
+        { width: 6 }, { width: 2 }, { width: 2 }, { width: 12 }, { width: 2 }, { width: 2 }, { width: 2 },
+        { width: 15 }, { width: 12 }
     ];
 
-    const widths = [];
-    widths[0] = 2; widths[1] = 4; widths[2] = 2; widths[3] = 50; widths[4] = 2; widths[5] = 2; widths[6] = 2;
-    widths[7] = 2; widths[8] = 2; widths[9] = 12; widths[10] = 2; widths[11] = 2; widths[12] = 2; widths[13] = 2;
-    widths[14] = 2; widths[15] = 2; widths[16] = 2; widths[17] = 2; widths[18] = 2; widths[19] = 2; widths[20] = 2;
-    widths[21] = 2; widths[22] = 2; widths[23] = 7; widths[24] = 2; widths[25] = 2; widths[26] = 2; widths[27] = 2;
-    widths[28] = 5; widths[29] = 2; widths[30] = 2; widths[31] = 12; widths[32] = 2; widths[33] = 2; widths[34] = 2;
-    widths[35] = 14; widths[36] = 12;
+    // Стили
+    const borderStyle = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    
+    // 1. Шапка с реквизитами (справа)
+    ws.getCell('J2').value = `Организация: ${d.company.fullName}`;
+    ws.getCell('J3').value = `Адрес: ${d.company.address}`;
+    ws.getCell('J4').value = `ИНН: ${d.company.inn} / КПП: ${d.company.kpp}`;
+    ws.getCell('J5').value = `Банк: ${d.company.bank}`;
+    ws.getCell('J6').value = `БИК: ${d.company.bik} / Р/с: ${d.company.rs} / К/с: ${d.company.ks}`;
+    
+    ['J2','J3','J4','J5','J6'].forEach(cell => {
+        ws.getCell(cell).alignment = { horizontal: 'right' };
+        ws.mergeCells(cell + ':U' + cell.slice(1)); // merge J:U
+    });
 
-    const parts = [];
-    const enc = new TextEncoder();
+    // 2. Заголовок КП
+    ws.getCell('B8').value = `Коммерческое предложение № ${d.number} от ${d.dateStr}`;
+    ws.getCell('B8').font = { bold: true, size: 12 };
 
-    const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
-<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
-<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-</Types>`;
+    // 3. Кому
+    ws.getCell('B12').value = 'Кому:';
+    ws.getCell('F12').value = d.customer;
+    ws.mergeCells('F12:U12');
 
-    const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-</Relationships>`;
+    // 4. Таблица товаров
+    const headRow = 14;
+    const headers = ['№', '', 'Товары (работы, услуги)', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Кол-во', '', '', '', 'Ед.', '', '', 'Цена', '', '', '', '', 'Сумма'];
+    // Заполняем только значимые ячейки, чтобы merge не сломался
+    ws.getCell(`B${headRow}`).value = '№';
+    ws.getCell(`D${headRow}`).value = 'Товары (работы, услуги)';
+    ws.getCell(`X${headRow}`).value = 'Кол-во';
+    ws.getCell(`AE${headRow}`).value = 'Ед.';
+    ws.getCell(`AH${headRow}`).value = 'Цена';
+    ws.getCell(`AJ${headRow}`).value = 'Сумма';
 
-    const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-<sheets><sheet name="Лист_1" sheetId="1" r:id="rId1"/></sheets>
-</workbook>`;
+    // Применяем стили и объединения к шапке
+    ws.mergeCells(`D${headRow}:W${headRow}`);
+    ['B','D','X','AE','AH','AJ'].forEach(col => {
+        ws.getCell(`${col}${headRow}`).font = { bold: true };
+        ws.getCell(`${col}${headRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
+        ws.getCell(`${col}${headRow}`).border = borderStyle;
+    });
 
-    const workbookRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>`;
+    // Данные
+    d.rows.forEach((r, i) => {
+        const rr = headRow + 1 + i;
+        ws.getCell(`B${rr}`).value = r.idx;
+        ws.getCell(`D${rr}`).value = r.name;
+        ws.getCell(`X${rr}`).value = r.qty;
+        ws.getCell(`AE${rr}`).value = r.unit;
+        ws.getCell(`AH${rr}`).value = r.price;
+        ws.getCell(`AJ${rr}`).value = r.sum;
 
-    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>
-<fills count="1"><fill><patternFill patternType="none"/></fill></fills>
-<borders count="1"><border/></borders>
-<cellStyleXfs count="1"><xf/></cellStyleXfs>
-<cellXfs count="1"><xf xfId="0"/></cellXfs>
-</styleSheet>`;
+        ws.mergeCells(`D${rr}:W${rr}`);
+        
+        ws.getCell(`B${rr}`).border = borderStyle;
+        ws.getCell(`D${rr}`).border = borderStyle;
+        ws.getCell(`X${rr}`).border = borderStyle;
+        ws.getCell(`AE${rr}`).border = borderStyle;
+        ws.getCell(`AH${rr}`).border = borderStyle;
+        ws.getCell(`AJ${rr}`).border = borderStyle;
 
-    const sheet = sheetXml(rows, merges, widths);
+        ws.getCell(`B${rr}`).alignment = { horizontal: 'center' };
+        ws.getCell(`X${rr}`).alignment = { horizontal: 'center' };
+        ws.getCell(`AE${rr}`).alignment = { horizontal: 'center' };
+        ws.getCell(`AH${rr}`).alignment = { horizontal: 'right' };
+        ws.getCell(`AJ${rr}`).alignment = { horizontal: 'right' };
+    });
 
-    parts.push({ name: '[Content_Types].xml', data: enc.encode(contentTypes) });
-    parts.push({ name: '_rels/.rels', data: enc.encode(rels) });
-    parts.push({ name: 'xl/workbook.xml', data: enc.encode(workbook) });
-    parts.push({ name: 'xl/_rels/workbook.xml.rels', data: enc.encode(workbookRels) });
-    parts.push({ name: 'xl/styles.xml', data: enc.encode(styles) });
-    parts.push({ name: 'xl/worksheets/sheet1.xml', data: enc.encode(sheet) });
+    // Итого
+    const sumRow = headRow + d.rows.length + 2;
+    ws.getCell(`AJ${sumRow}`).value = 'Итого:';
+    ws.getCell(`AK${sumRow}`).value = d.total;
+    ws.getCell(`AJ${sumRow+1}`).value = `Без налога (${d.company.nds}):`;
+    ws.getCell(`AK${sumRow+1}`).value = '-';
+    ws.getCell(`AJ${sumRow+2}`).value = 'Всего:';
+    ws.getCell(`AK${sumRow+2}`).value = d.total;
 
-    const zip = zipStore(parts);
-    const blob = new Blob([zip], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `КП_${safeFileName(d.number)}_${safeFileName(d.customer)}.xlsx`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    ['AJ','AK'].forEach(col => {
+        for(let i=0; i<3; i++) {
+            ws.getCell(`${col}${sumRow+i}`).border = { top: { style: 'thin' }, bottom: { style: 'thin' } }; // только линии
+            ws.getCell(`${col}${sumRow+i}`).alignment = { horizontal: col === 'AJ' ? 'right' : 'left' };
+        }
+    });
+
+    ws.getCell(`B${sumRow+3}`).value = `Всего наименований ${d.rows.length}, на сумму ${fmtMoney(d.total)} руб.`;
+    ws.getCell(`B${sumRow+4}`).value = d.totalWords;
+    ws.getCell(`B${sumRow+4}`).font = { bold: true };
+    ws.getCell(`B${sumRow+6}`).value = `Предложение действует до ${d.validUntil} года.`;
+
+    ws.getCell(`B${sumRow+11}`).value = 'Руководитель';
+    ws.getCell(`Y${sumRow+11}`).value = d.company.director;
+
+    // Сохранение
+    wb.xlsx.writeBuffer().then(buffer => {
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `КП_${safeFileName(d.number)}_${safeFileName(d.customer)}.xlsx`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    });
 }
 window.exportOrderAsXlsx = exportOrderAsXlsx;
 
@@ -367,32 +245,45 @@ function buildProposalHtml(d) {
             <td class="r">${fmtMoney(r.sum)}</td>
         </tr>`).join('');
 
+    // Блок реквизитов
     const companyHtml = `
-        <div>Организация: ${escXml(d.company.fullName)}</div>
-        ${d.company.inn ? `<div>ИНН: ${escXml(d.company.inn)} / КПП: ${escXml(d.company.kpp)}</div>` : ''}
-        <div>Адрес: ${escXml(d.company.address)}</div>
+        <div><b>Организация:</b> ${escXml(d.company.fullName)}</div>
+        <div><b>Адрес:</b> ${escXml(d.company.address)}</div>
+        <div><b>ИНН / КПП:</b> ${escXml(d.company.inn)} / ${escXml(d.company.kpp)}</div>
+        <div><b>Банк:</b> ${escXml(d.company.bank)}</div>
+        <div><b>БИК / Р/с / К/с:</b> ${escXml(d.company.bik)} / ${escXml(d.company.rs)} / ${escXml(d.company.ks)}</div>
     `;
+
+    // Блок подписи с факсимиле (если есть)
+    const faxHtml = window.companyFaxBase64 
+        ? `<img src="${window.companyFaxBase64}" style="position:absolute; left:100px; top:-20px; width:120px; opacity:0.85; mix-blend-mode: multiply;">` 
+        : '';
 
     return `<!DOCTYPE html>
 <html lang="ru"><head><meta charset="UTF-8"><title>КП № ${escXml(d.number)}</title>
 <style>
+/* Скрываем колонтитулы браузера при печати */
 @page { size: A4; margin: 15mm; }
+@media print {
+    .no-print { display:none !important; }
+    /* Это убирает URL и дату */
+    @page { margin: 15mm 15mm 15mm 15mm; }
+}
 * { box-sizing: border-box; }
-body { font-family: "Times New Roman", Times, serif; font-size: 12pt; color:#000; margin:0; }
-.hdr { text-align:right; line-height:1.35; margin-bottom:18px; }
-h1 { font-size:14pt; margin: 14px 0 12px; }
-.meta { margin: 10px 0; }
-table.items { width:100%; border-collapse:collapse; margin-top:10px; }
-table.items th, table.items td { border:1px solid #555; padding:4px 6px; vertical-align:top; }
-table.items th { background:#eee; font-weight:bold; }
+body { font-family: "Times New Roman", Times, serif; font-size: 11pt; color:#000; margin:0; }
+.hdr { font-size: 10pt; line-height:1.35; margin-bottom: 24px; }
+h1 { font-size:14pt; margin: 14px 0 16px; text-align:center; }
+.meta { margin: 12px 0; font-size: 12pt; }
+table.items { width:100%; border-collapse:collapse; margin-top:16px; font-size: 10pt; }
+table.items th, table.items td { border:1px solid #555; padding:6px 8px; vertical-align:top; }
+table.items th { background:#f5f5f5; font-weight:bold; text-align:center; }
 td.c { text-align:center; }
 td.r { text-align:right; white-space:nowrap; }
-table.totals { width:45%; margin-left:auto; margin-top:10px; border-collapse:collapse; }
+table.totals { width:40%; margin-left:auto; margin-top:16px; border-collapse:collapse; font-size: 11pt; }
 table.totals td { padding:4px 6px; }
 table.totals td:last-child { text-align:right; border-bottom:1px solid #555; white-space:nowrap; }
-.words { margin-top:14px; }
-.sign { margin-top:40px; display:flex; justify-content:space-between; gap:20px; }
-@media print { .no-print { display:none !important; } }
+.words { margin-top:16px; font-size: 11pt; }
+.sign { margin-top:45px; position:relative; display:flex; justify-content:space-between; font-size: 11pt; }
 </style></head>
 <body>
 <div class="hdr">
@@ -418,13 +309,23 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
 </table>
 <div class="words">Всего наименований ${d.rows.length}, на сумму ${fmtMoney(d.total)} руб.</div>
 <div class="words"><b>${escXml(d.totalWords)}</b></div>
-<div class="meta" style="margin-top:16px;">Предложение действует до ${escXml(d.validUntil)} года.</div>
+<div class="words" style="margin-top:20px;">Предложение действует до ${escXml(d.validUntil)} года.</div>
+
 <div class="sign">
-    <div>Руководитель ____________________</div>
-    <div>${escXml(d.company.director)}</div>
+    <div style="width: 40%;">
+        <div style="border-bottom: 1px solid #000; height: 30px; margin-bottom: 4px;"></div>
+        <div style="text-align: center;">Руководитель</div>
+    </div>
+    <div style="width: 40%; position:relative;">
+        ${faxHtml}
+        <div style="border-bottom: 1px solid #000; height: 30px; margin-bottom: 4px;"></div>
+        <div style="text-align: center;">${escXml(d.company.director)}</div>
+    </div>
 </div>
-<div class="no-print" style="margin-top:24px; text-align:center;">
-    <button onclick="window.print()" style="padding:8px 20px; font-size:14px; cursor:pointer;">🖨️ Печать / Сохранить как PDF</button>
+
+<div class="no-print" style="margin-top:40px; text-align:center;">
+    <button onclick="window.print()" style="padding:10px 24px; font-size:16px; cursor:pointer; background:#ff9900; color:#fff; border:none; border-radius:4px; font-weight:bold;">🖨️ Сохранить в PDF</button>
+    <div style="font-size:12px; color:#666; margin-top:10px;">В настройках печати выберите <b>«Сохранить как PDF»</b> и обязательно снимите галочку <b>«Верхние и нижние колонтитулы»</b>.</div>
 </div>
 <script>window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 200); });<\/script>
 </body></html>`;
