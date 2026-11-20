@@ -116,9 +116,13 @@ function loadDataFromSource() {
         try {
             orders = JSON.parse(localStorage.getItem('scots_orders')) || [];
             customers = JSON.parse(localStorage.getItem('scots_customers')) || [];
-            // Если локально нет реквизитов, берем тестовые
-            if (!companyRequisites.fullName) {
-                companyRequisites = { fullName: 'ООО "МАРКОРП"', address: '634061, г. Томск...', inn: '7000024389', kpp: '700001001', bank: 'СБЕРБАНК', bik: '047102651', ks: '30101810800000000651', rs: '40702810364710000212', nds: 'НДС не облагается', director: 'Марухленко И.А.' };
+            
+            // Для локального режима берем сохраненные реквизиты, если нет - тестовые
+            const savedReqs = localStorage.getItem('scots_requisites');
+            if (savedReqs) {
+                companyRequisites = JSON.parse(savedReqs);
+            } else if (!companyRequisites.fullName) {
+                companyRequisites = { fullName: 'ООО "МАРКОРП"', address: '634061, г. Томск, ул. Тверская, 57-24', inn: '7000024389', kpp: '700001001', bank: 'СБЕРБАНК', bik: '047102651', ks: '30101810800000000651', rs: '40702810364710000212', nds: 'НДС не облагается', director: 'Марухленко И.А.' };
             }
         } catch (e) {
             orders = [];
@@ -153,33 +157,37 @@ window.handleRequisitesResponse = function(resData) {
     if (resData && resData.result === 'success') {
         const d = resData.data;
         
-        // Помогаем найти ключи, если они вдруг с пробелами или в другом регистре
-        const findKey = (possibleKeys) => {
-            for (let k in d) {
-                if (possibleKeys.includes(k.trim().toLowerCase())) return d[k];
-            }
-            return '';
-        };
-
+        // ВЫВОДИМ В КОНСОЛЬ, ЧТОБЫ ВИДЕТЬ, КАКИЕ КЛЮЧИ ПРИШЛИ ИЗ GOOGLE
+        console.log("=== СЫРЫЕ ДАННЫЕ РЕКВИЗИТОВ ИЗ GOOGLE ===");
+        console.log(d);
+        
+        // Строго фиксированные ключи по твоему скриншоту
         companyRequisites = {
-            fullName: findKey(['полное наименование', 'организация', 'наименование']),
-            shortName: findKey(['краткое наименование', 'краткое']),
-            inn: findKey(['инн']),
-            kpp: findKey(['кпп']),
-            address: findKey(['юр. адрес', 'юридический адрес', 'адрес']),
-            bank: findKey(['банк', 'наименование банка']),
-            bik: findKey(['бик']),
-            ks: findKey(['кс', 'к/с', 'корсчет']),
-            rs: findKey(['рс', 'р/с', 'расчетный счет']),
-            nds: findKey(['ндс']),
-            director: findKey(['фио', 'руководитель', 'генеральный директор'])
+            fullName: d['Полное наименование'] || d['Организация'] || '',
+            shortName: d['Краткое наименование'] || '',
+            inn: d['ИНН'] || '',
+            kpp: d['КПП'] || '',
+            address: d['Юр. адрес'] || d['Юридический адрес'] || '',
+            bank: d['Банк'] || '',
+            bik: d['БИК'] || '',
+            ks: d['Кс'] || d['К/с'] || '',
+            rs: d['Рс'] || d['Р/с'] || '',
+            nds: d['НДС'] || 'НДС не облагается',
+            director: d['ФИО'] || d['Руководитель'] || ''
         };
         
+        // Проверяем, что хотя бы ИНН подтянулся
+        if (!companyRequisites.inn) {
+            console.warn("ВНИМАНИЕ: ИНН не найден! Проверьте, чтобы в колонке B было написано ровно 'ИНН' (без пробелов).");
+        }
+
         // Сохраняем в localStorage для локального режима
         localStorage.setItem('scots_requisites', JSON.stringify(companyRequisites));
-        console.log("Реквизиты из Google успешно загружены:", companyRequisites);
+        console.log("Реквизиты успешно обработаны:", companyRequisites);
+        
     } else {
-        console.error("Не удалось загрузить реквизиты");
+        console.error("Не удалось загрузить реквизиты. Ответ:", resData);
+        showErrorToast("Ошибка при загрузке реквизитов");
     }
     const oldScript = document.getElementById('google-requisites-script');
     if (oldScript) oldScript.remove();
@@ -318,7 +326,6 @@ function parseGoogleDataArray(matrix) {
             }
         }
 
-        // Если в таблице еще нет колонки с displayId, используем стандартный индекс
         const displayId = row[9] ? String(row[9]).trim() : String(i).padStart(3, '0');
 
         newOrders.push({
@@ -405,7 +412,6 @@ async function handleSaveOrder(e) {
         comments: modalCommentsTextarea.value.trim()
     };
 
-    // Если редактируем, сохраняем старый displayId
     if (currentEditingOrderId !== null) {
         orderData.displayId = orders[currentEditingOrderId].displayId;
     }
