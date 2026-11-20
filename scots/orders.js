@@ -1,9 +1,11 @@
 let orders = [];
 let customers = [];
 let currentEditingOrderId = null;
-let companyRequisites = {}; 
 let companyFaxBase64 = null;
 let requisitesLoaded = false;
+
+// Явно вешаем реквизиты на window, чтобы proposal.js их видел
+window.companyRequisites = {};
 
 const topCreateBtn = document.getElementById('top-create-btn');
 const orderModal = document.getElementById('order-modal');
@@ -121,11 +123,10 @@ function loadDataFromSource() {
             
             const savedReqs = localStorage.getItem('scots_requisites');
             if (savedReqs) {
-                companyRequisites = JSON.parse(savedReqs);
+                window.companyRequisites = JSON.parse(savedReqs);
                 requisitesLoaded = true;
             } else {
-                // Тестовые данные для локального режима
-                companyRequisites = { 
+                window.companyRequisites = { 
                     fullName: 'ООО "МАРКОРП"', address: '634061, г. Томск, ул. Тверская, 57-24', 
                     inn: '7000024389', kpp: '700001001', bank: 'СБЕРБАНК', bik: '047102651', 
                     ks: '30101810800000000651', rs: '40702810364710000212', nds: 'НДС не облагается', director: 'Марухленко И.А.' 
@@ -163,14 +164,15 @@ function fetchRequisitesFromGoogle() {
 
 window.handleRequisitesResponse = function(resData) {
     if (resData && resData.result === 'success') {
-        companyRequisites = resData.data;
+        // Сохраняем данные в глобальную переменную window
+        window.companyRequisites = resData.data;
         requisitesLoaded = true;
         
-        localStorage.setItem('scots_requisites', JSON.stringify(companyRequisites));
-        console.log("✅ РЕКВИЗИТЫ УСПЕШНО ЗАГРУЖЕНЫ ИЗ GOOGLE:", companyRequisites);
+        localStorage.setItem('scots_requisites', JSON.stringify(window.companyRequisites));
+        console.log("✅ РЕКВИЗИТЫ ПОЛУЧЕНЫ:", window.companyRequisites);
     } else {
-        console.error("❌ ОШИБКА ЗАГРУЗКИ РЕКВИЗИТОВ. Ответ от Google:", resData);
-        showErrorToast("Не удалось загрузить реквизиты. Откройте F12 -> Консоль.");
+        console.error("❌ ОШИБКА РЕКВИЗИТОВ. Ответ:", resData);
+        showErrorToast("Не удалось загрузить реквизиты.");
     }
     const oldScript = document.getElementById('google-requisites-script');
     if (oldScript) oldScript.remove();
