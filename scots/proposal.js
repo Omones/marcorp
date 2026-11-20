@@ -86,7 +86,9 @@ function buildProposalData(order, orderIndex) {
     const total = rows.reduce((s, r) => s + r.sum, 0);
 
     const reqs = window.companyRequisites || {};
-    console.log("ПРОВЕРКА ПЕРЕД ГЕНЕРАЦИЕЙ КП:", reqs);
+    
+    console.log("Данные для КП (buildProposalData):", reqs);
+
     return {
         number, dateStr, validUntil,
         customer: order.customer || '',
@@ -109,9 +111,8 @@ function buildProposalData(order, orderIndex) {
 
 // ============ XLSX (ExcelJS) ============
 function exportOrderAsXlsx(orderIndex) {
-    // Проверка на загрузку реквизитов
     if (!requisitesLoaded || !companyRequisites.inn) {
-        alert('Внимание: Реквизиты еще не загружены! Нажмите "Синхронизировать" в шапке сайта и попробуйте снова.');
+        alert('Внимание: Реквизиты еще не загружены! Нажмите "Синхронизировать" в шапке сайта.');
         return;
     }
 
@@ -246,9 +247,10 @@ function buildProposalHtml(d) {
         <div><b>БИК / Р/с / К/с:</b> ${escXml(d.company.bik)} / ${escXml(d.company.rs)} / ${escXml(d.company.ks)}</div>
     `;
 
+    // Получаем base64 факсимиле из глобальной переменной
     const faxImgSrc = window.companyFaxBase64 || '';
     const faxHtml = faxImgSrc 
-        ? `<img src="${faxImgSrc}" style="position:absolute; left:50px; top:-30px; width:140px; opacity:0.85; mix-blend-mode: multiply;">` 
+        ? `<img id="fax-img" src="${faxImgSrc}" style="position:absolute; left:50px; top:-30px; width:140px; opacity:0.85; mix-blend-mode: multiply;">` 
         : '';
 
     return `<!DOCTYPE html>
@@ -319,7 +321,6 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
         <input type="file" id="fax-upload-pdf" accept="image/*" style="padding:5px;">
     </div>
     <button onclick="window.print()" style="padding:10px 24px; font-size:16px; cursor:pointer; background:#ff9900; color:#fff; border:none; border-radius:4px; font-weight:bold;">🖨️ Сохранить в PDF</button>
-    <div style="font-size:12px; color:#666; margin-top:10px;">В настройках печати выберите <b>«Сохранить как PDF»</b> и обязательно снимите галочку <b>«Верхние и нижние колонтитулы»</b>.</div>
 </div>
 <script>
     document.getElementById('fax-upload-pdf').addEventListener('change', function(e) {
@@ -328,13 +329,17 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
         const reader = new FileReader();
         reader.onload = function(ev) {
             const base64 = ev.target.result;
-            window.opener.companyFaxBase64 = base64;
-            window.opener.localStorage.setItem('scots_fax', base64);
+            // Сохраняем обратно в родительское окно
+            if (window.opener) {
+                window.opener.companyFaxBase64 = base64;
+                window.opener.localStorage.setItem('scots_fax', base64);
+            }
             
             const signDiv = document.querySelector('.sign div:last-child');
             let img = signDiv.querySelector('img');
             if (!img) {
                 img = document.createElement('img');
+                img.id = 'fax-img';
                 img.style.cssText = 'position:absolute; left:50px; top:-30px; width:140px; opacity:0.85; mix-blend-mode: multiply;';
                 signDiv.insertBefore(img, signDiv.firstChild);
             }
@@ -352,9 +357,8 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
 }
 
 function exportOrderAsPdf(orderIndex) {
-    // Проверка на загрузку реквизитов
     if (!requisitesLoaded || !companyRequisites.inn) {
-        alert('Внимание: Реквизиты еще не загружены! Нажмите "Синхронизировать" в шапке сайта и попробуйте снова.');
+        alert('Внимание: Реквизиты еще не загружены! Нажмите "Синхронизировать" в шапке сайта.');
         return;
     }
 
