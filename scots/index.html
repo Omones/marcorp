@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCOTS - Учет заказов</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Подключаем ExcelJS для генерации идеального Excel -->
+    <!-- Подключаем ExcelJS -->
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 </head>
 <body class="taxi-body">
@@ -20,12 +20,6 @@
         <button type="button" class="taxi-btn" id="top-export-btn" title="Выгрузить базу данных в JSON-файл">📥 Экспорт БД</button>
         <button type="button" class="taxi-btn" id="top-import-btn" title="Загрузить базу данных из JSON-файла">📤 Импорт БД</button>
         <input type="file" id="database-file-input" accept=".json" style="display: none;">
-
-        <!-- НОВОЕ: Загрузка факсимиле -->
-        <label class="taxi-btn" style="display: flex; align-items: center; cursor: pointer; margin-left: 10px;" title="Загрузить картинку с подписью/печатью для КП">
-            🖼️ Факсимиле
-            <input type="file" id="fax-file-input" accept="image/*" style="display: none;">
-        </label>
 
         <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
             <label style="color: #666; font-size: 13px;">Источник БД:</label>
@@ -48,7 +42,7 @@
                 <table class="taxi-table">
                     <thead>
                         <tr>
-                            <th style="width: 60px;">№</th>
+                            <th style="width: 80px;">№</th>
                             <th style="width: 130px;">Дата</th>
                             <th style="width: 110px;">План. приб.</th>
                             <th>Клиент</th>
