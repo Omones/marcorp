@@ -3,6 +3,7 @@ let customers = [];
 let currentEditingOrderId = null;
 let companyRequisites = {}; 
 let companyFaxBase64 = null;
+let requisitesLoaded = false;
 
 const topCreateBtn = document.getElementById('top-create-btn');
 const orderModal = document.getElementById('order-modal');
@@ -111,6 +112,8 @@ function handleToggleUiElements(source) {
 
 function loadDataFromSource() {
     const source = dbSourceSelect.value;
+    requisitesLoaded = false;
+    
     if (source === 'local') {
         try {
             orders = JSON.parse(localStorage.getItem('scots_orders')) || [];
@@ -119,12 +122,15 @@ function loadDataFromSource() {
             const savedReqs = localStorage.getItem('scots_requisites');
             if (savedReqs) {
                 companyRequisites = JSON.parse(savedReqs);
-            } else if (!companyRequisites.fullName) {
+                requisitesLoaded = true;
+            } else {
+                // Тестовые данные для локального режима
                 companyRequisites = { 
                     fullName: 'ООО "МАРКОРП"', address: '634061, г. Томск, ул. Тверская, 57-24', 
                     inn: '7000024389', kpp: '700001001', bank: 'СБЕРБАНК', bik: '047102651', 
                     ks: '30101810800000000651', rs: '40702810364710000212', nds: 'НДС не облагается', director: 'Марухленко И.А.' 
                 };
+                requisitesLoaded = true;
             }
         } catch (e) {
             orders = [];
@@ -157,14 +163,14 @@ function fetchRequisitesFromGoogle() {
 
 window.handleRequisitesResponse = function(resData) {
     if (resData && resData.result === 'success') {
-        // Просто берем готовый объект от Apps Script!
         companyRequisites = resData.data;
+        requisitesLoaded = true;
         
         localStorage.setItem('scots_requisites', JSON.stringify(companyRequisites));
-        console.log("Реквизиты загружены по координатам:", companyRequisites);
+        console.log("✅ РЕКВИЗИТЫ УСПЕШНО ЗАГРУЖЕНЫ ИЗ GOOGLE:", companyRequisites);
     } else {
-        console.error("Не удалось загрузить реквизиты. Ответ:", resData);
-        showErrorToast("Ошибка при загрузке реквизитов");
+        console.error("❌ ОШИБКА ЗАГРУЗКИ РЕКВИЗИТОВ. Ответ от Google:", resData);
+        showErrorToast("Не удалось загрузить реквизиты. Откройте F12 -> Консоль.");
     }
     const oldScript = document.getElementById('google-requisites-script');
     if (oldScript) oldScript.remove();
@@ -246,7 +252,7 @@ function sendGoogleMutation(actionType, index, orderData) {
     document.body.appendChild(script);
 }
 
-// --- ПАРСИНГ ---
+// --- ПАРСИНГ ДАТ ---
 function formatDateForInput(dateVal) {
     if (!dateVal) return "";
     if (dateVal instanceof Date) {
