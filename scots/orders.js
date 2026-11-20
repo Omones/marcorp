@@ -1,7 +1,8 @@
 let orders = [];
 let customers = [];
 let currentEditingOrderId = null;
-let companyRequisites = {}; // <--- НОВОЕ: Хранилище для реквизитов
+let companyRequisites = {}; 
+let companyFaxBase64 = null; // <--- НОВОЕ: Хранилище факсимиле
 
 const topCreateBtn = document.getElementById('top-create-btn');
 const orderModal = document.getElementById('order-modal');
@@ -24,13 +25,13 @@ const modalAddItemBtn = document.getElementById('modal-add-item-btn');
 const dbSourceSelect = document.getElementById('db-source-select');
 const googleUrlInput = document.getElementById('google-url-input');
 const syncGoogleBtn = document.getElementById('sync-google-btn');
+const faxFileInput = document.getElementById('fax-file-input'); // <--- НОВОЕ
 
 // --- ФУНКЦИИ УВЕДОМЛЕНИЙ (TOAST) ---
 function showLoadingToast(text = "Синхронизация с Google...") {
     const container = document.getElementById('toast-container');
     if (!container) return;
     container.innerHTML = ''; 
-    
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.id = 'sync-toast';
@@ -41,13 +42,10 @@ function showLoadingToast(text = "Синхронизация с Google...") {
 function showSuccessToast(text = "Успешно сохранено!") {
     const container = document.getElementById('toast-container');
     if (!container) return;
-    
     const toast = document.getElementById('sync-toast') || document.createElement('div');
     toast.className = 'toast success';
     toast.innerHTML = '<span class="checkmark">✓</span><span>' + text + '</span>';
-    
     if (!toast.parentNode) container.appendChild(toast);
-    
     setTimeout(() => {
         toast.style.animation = 'fadeOut 0.3s ease-in forwards';
         setTimeout(() => toast.remove(), 300);
@@ -57,13 +55,10 @@ function showSuccessToast(text = "Успешно сохранено!") {
 function showErrorToast(text) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-    
     const toast = document.getElementById('sync-toast') || document.createElement('div');
     toast.className = 'toast error';
     toast.innerHTML = '<span>⚠️</span><span>' + text + '</span>';
-    
     if (!toast.parentNode) container.appendChild(toast);
-
     setTimeout(() => {
         toast.style.animation = 'fadeOut 0.3s ease-in forwards';
         setTimeout(() => toast.remove(), 300);
@@ -76,6 +71,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (sessionStorage.getItem('scots_google_url')) {
         googleUrlInput.value = sessionStorage.getItem('scots_google_url');
+    }
+
+    // Загружаем факсимиле из локального хранилища при старте
+    companyFaxBase64 = localStorage.getItem('scots_fax');
+    if (companyFaxBase64) {
+        showSuccessToast("Факсимиле загружено из памяти");
+    }
+
+    // Обработчик загрузки нового факсимиле
+    if (faxFileInput) {
+        faxFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                companyFaxBase64 = ev.target.result;
+                localStorage.setItem('scots_fax', companyFaxBase64);
+                showSuccessToast("Факсимиле успешно загружено и сохранено!");
+            };
+            reader.readAsDataURL(file);
+            faxFileInput.value = ''; // сбрасываем инпут
+        });
     }
 
     handleToggleUiElements(dbSourceSelect.value);
@@ -120,7 +137,6 @@ function loadDataFromSource() {
             orders = JSON.parse(localStorage.getItem('scots_orders')) || [];
             customers = JSON.parse(localStorage.getItem('scots_customers')) || [];
         } catch (e) {
-            console.error("Ошибка чтения локальной БД:", e);
             orders = [];
             customers = [];
         }
@@ -128,7 +144,7 @@ function loadDataFromSource() {
         if (typeof renderOrdersTable === 'function') renderOrdersTable();
     } else if (source === 'google') {
         fetchGoogleSpreadsheetData();
-        fetchRequisitesFromGoogle(); // <--- ДОБАВЛЕНО: Загрузка реквизитов
+        fetchRequisitesFromGoogle();
     }
 }
 
@@ -153,8 +169,8 @@ window.handleRequisitesResponse = function(resData) {
     if (resData && resData.result === 'success') {
         const d = resData.data;
         companyRequisites = {
-            fullName: d['Полное наименование'] || 'ООО "МАРКОРП"',
-            shortName: d['Краткое наименование'] || 'ООО "МАРКОРП"',
+            fullName: d['Полное наименование'] || '',
+            shortName: d['Краткое наименование'] || '',
             inn: d['ИНН'] || '',
             kpp: d['КПП'] || '',
             address: d['Юр. адрес'] || '',
@@ -162,14 +178,12 @@ window.handleRequisitesResponse = function(resData) {
             bik: d['БИК'] || '',
             ks: d['Кс'] || '',
             rs: d['Рс'] || '',
-            nds: d['НДС'] || 'НДС не облагается',
+            nds: d['НДС'] || '',
             director: d['ФИО'] || ''
         };
-        console.log("Реквизиты загружены:", companyRequisites);
     } else {
         console.error("Не удалось загрузить реквизиты");
     }
-    
     const oldScript = document.getElementById('google-requisites-script');
     if (oldScript) oldScript.remove();
 };
@@ -250,7 +264,7 @@ function sendGoogleMutation(actionType, index, orderData) {
     document.body.appendChild(script);
 }
 
-// --- ПАРСИНГ И ФОРМАТИРОВАНИЕ ДАТ (Универсальные) ---
+// --- ПАРСИНГ И ФОРМАТИРОВАНИЕ ДАТ ---
 function formatDateForInput(dateVal) {
     if (!dateVal) return "";
     if (dateVal instanceof Date) {
@@ -288,7 +302,6 @@ function parseGoogleDataArray(matrix) {
 
         const date = formatDateForInput(row[0]);
         const deliveryDate = formatDateOnly(row[1]);
-        
         const customerName = row[2] ? String(row[2]).trim() : "";
         const total = parseFloat(row[3]) || 0;
         const shipping = parseFloat(row[4]) || 0;
@@ -348,7 +361,6 @@ function openOrderModal(index) {
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
         modalDateInput.value = (new Date(now - offset)).toISOString().slice(0, 16);
-
         const deliveryDateObj = new Date(now.getTime() + (5 * 24 * 60 * 60 * 1000));
         modalDeliveryDateInput.value = deliveryDateObj.toISOString().slice(0, 10);
         modalStatusSelect.value = "ожидает оплаты";
@@ -360,10 +372,8 @@ function openOrderModal(index) {
         modalCustomerInput.value = order.customer;
         modalTotalInput.value = order.total;
         modalShippingInput.value = order.shipping;
-        
         modalDateInput.value = formatDateForInput(order.date);
         modalDeliveryDateInput.value = formatDateOnly(order.deliveryDate);
-        
         modalStatusSelect.value = order.status;
         modalCommentsTextarea.value = order.comments || "";
         orderModal.tempItems = JSON.parse(JSON.stringify(order.items || []));
