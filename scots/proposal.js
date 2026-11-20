@@ -67,6 +67,7 @@ function numberToWordsRu(num) {
 }
 
 function buildProposalData(order, orderIndex) {
+    // Используем displayId, если он есть
     const number = order.displayId || String(orderIndex + 1).padStart(3, '0');
     const dateStr = order.date
         ? new Date(order.date).toLocaleDateString('ru-RU')
@@ -87,6 +88,9 @@ function buildProposalData(order, orderIndex) {
 
     // Берем реквизиты из глобальной переменной
     const reqs = window.companyRequisites || {};
+    
+    // Проверка на пустые поля
+    const safe = (val, fallback) => (val && String(val).trim() !== '') ? String(val).trim() : fallback;
 
     return {
         number, dateStr, validUntil,
@@ -94,16 +98,16 @@ function buildProposalData(order, orderIndex) {
         rows, total,
         totalWords: numberToWordsRu(total),
         company: {
-            fullName: reqs.fullName || 'ООО "МАРКОРП"',
-            address: reqs.address || '',
-            inn: reqs.inn || '',
-            kpp: reqs.kpp || '',
-            bank: reqs.bank || '',
-            bik: reqs.bik || '',
-            ks: reqs.ks || '',
-            rs: reqs.rs || '',
-            nds: reqs.nds || 'НДС не облагается',
-            director: reqs.director || ''
+            fullName: safe(reqs.fullName, 'ООО "МАРКОРП"'),
+            address: safe(reqs.address, 'Адрес не указан'),
+            inn: safe(reqs.inn, 'ИНН не указан'),
+            kpp: safe(reqs.kpp, 'КПП не указан'),
+            bank: safe(reqs.bank, 'Банк не указан'),
+            bik: safe(reqs.bik, 'БИК не указан'),
+            ks: safe(reqs.ks, 'К/с не указан'),
+            rs: safe(reqs.rs, 'Р/с не указан'),
+            nds: safe(reqs.nds, 'НДС не облагается'),
+            director: safe(reqs.director, 'И.О. Фамилия')
         }
     };
 }
@@ -117,7 +121,6 @@ function exportOrderAsXlsx(orderIndex) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('КП', { views: [{ showGridLines: false }] });
 
-    // Ширины колонок (A=2, B=4, C=2, D=50, E=2, F=2, G=2...)
     ws.columns = [
         { width: 2 }, { width: 4 }, { width: 2 }, { width: 50 }, { width: 2 }, { width: 2 }, { width: 2 },
         { width: 2 }, { width: 2 }, { width: 15 }, { width: 2 }, { width: 2 }, { width: 2 }, { width: 2 },
@@ -127,10 +130,8 @@ function exportOrderAsXlsx(orderIndex) {
         { width: 15 }, { width: 12 }
     ];
 
-    // Стили
     const borderStyle = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     
-    // 1. Шапка с реквизитами (справа)
     ws.getCell('J2').value = `Организация: ${d.company.fullName}`;
     ws.getCell('J3').value = `Адрес: ${d.company.address}`;
     ws.getCell('J4').value = `ИНН: ${d.company.inn} / КПП: ${d.company.kpp}`;
@@ -139,22 +140,17 @@ function exportOrderAsXlsx(orderIndex) {
     
     ['J2','J3','J4','J5','J6'].forEach(cell => {
         ws.getCell(cell).alignment = { horizontal: 'right' };
-        ws.mergeCells(cell + ':U' + cell.slice(1)); // merge J:U
+        ws.mergeCells(cell + ':U' + cell.slice(1));
     });
 
-    // 2. Заголовок КП
     ws.getCell('B8').value = `Коммерческое предложение № ${d.number} от ${d.dateStr}`;
     ws.getCell('B8').font = { bold: true, size: 12 };
 
-    // 3. Кому
     ws.getCell('B12').value = 'Кому:';
     ws.getCell('F12').value = d.customer;
     ws.mergeCells('F12:U12');
 
-    // 4. Таблица товаров
     const headRow = 14;
-    const headers = ['№', '', 'Товары (работы, услуги)', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Кол-во', '', '', '', 'Ед.', '', '', 'Цена', '', '', '', '', 'Сумма'];
-    // Заполняем только значимые ячейки, чтобы merge не сломался
     ws.getCell(`B${headRow}`).value = '№';
     ws.getCell(`D${headRow}`).value = 'Товары (работы, услуги)';
     ws.getCell(`X${headRow}`).value = 'Кол-во';
@@ -162,7 +158,6 @@ function exportOrderAsXlsx(orderIndex) {
     ws.getCell(`AH${headRow}`).value = 'Цена';
     ws.getCell(`AJ${headRow}`).value = 'Сумма';
 
-    // Применяем стили и объединения к шапке
     ws.mergeCells(`D${headRow}:W${headRow}`);
     ['B','D','X','AE','AH','AJ'].forEach(col => {
         ws.getCell(`${col}${headRow}`).font = { bold: true };
@@ -170,7 +165,6 @@ function exportOrderAsXlsx(orderIndex) {
         ws.getCell(`${col}${headRow}`).border = borderStyle;
     });
 
-    // Данные
     d.rows.forEach((r, i) => {
         const rr = headRow + 1 + i;
         ws.getCell(`B${rr}`).value = r.idx;
@@ -196,7 +190,6 @@ function exportOrderAsXlsx(orderIndex) {
         ws.getCell(`AJ${rr}`).alignment = { horizontal: 'right' };
     });
 
-    // Итого
     const sumRow = headRow + d.rows.length + 2;
     ws.getCell(`AJ${sumRow}`).value = 'Итого:';
     ws.getCell(`AK${sumRow}`).value = d.total;
@@ -207,7 +200,7 @@ function exportOrderAsXlsx(orderIndex) {
 
     ['AJ','AK'].forEach(col => {
         for(let i=0; i<3; i++) {
-            ws.getCell(`${col}${sumRow+i}`).border = { top: { style: 'thin' }, bottom: { style: 'thin' } }; // только линии
+            ws.getCell(`${col}${sumRow+i}`).border = { top: { style: 'thin' }, bottom: { style: 'thin' } };
             ws.getCell(`${col}${sumRow+i}`).alignment = { horizontal: col === 'AJ' ? 'right' : 'left' };
         }
     });
@@ -220,7 +213,6 @@ function exportOrderAsXlsx(orderIndex) {
     ws.getCell(`B${sumRow+11}`).value = 'Руководитель';
     ws.getCell(`Y${sumRow+11}`).value = d.company.director;
 
-    // Сохранение
     wb.xlsx.writeBuffer().then(buffer => {
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
@@ -245,7 +237,6 @@ function buildProposalHtml(d) {
             <td class="r">${fmtMoney(r.sum)}</td>
         </tr>`).join('');
 
-    // Блок реквизитов
     const companyHtml = `
         <div><b>Организация:</b> ${escXml(d.company.fullName)}</div>
         <div><b>Адрес:</b> ${escXml(d.company.address)}</div>
@@ -254,19 +245,18 @@ function buildProposalHtml(d) {
         <div><b>БИК / Р/с / К/с:</b> ${escXml(d.company.bik)} / ${escXml(d.company.rs)} / ${escXml(d.company.ks)}</div>
     `;
 
-    // Блок подписи с факсимиле (если есть)
-    const faxHtml = window.companyFaxBase64 
-        ? `<img src="${window.companyFaxBase64}" style="position:absolute; left:100px; top:-20px; width:120px; opacity:0.85; mix-blend-mode: multiply;">` 
+    // Место для факсимиле
+    const faxImgSrc = window.companyFaxBase64 || '';
+    const faxHtml = faxImgSrc 
+        ? `<img src="${faxImgSrc}" style="position:absolute; left:50px; top:-30px; width:140px; opacity:0.85; mix-blend-mode: multiply;">` 
         : '';
 
     return `<!DOCTYPE html>
 <html lang="ru"><head><meta charset="UTF-8"><title>КП № ${escXml(d.number)}</title>
 <style>
-/* Скрываем колонтитулы браузера при печати */
 @page { size: A4; margin: 15mm; }
 @media print {
     .no-print { display:none !important; }
-    /* Это убирает URL и дату */
     @page { margin: 15mm 15mm 15mm 15mm; }
 }
 * { box-sizing: border-box; }
@@ -323,11 +313,44 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
     </div>
 </div>
 
-<div class="no-print" style="margin-top:40px; text-align:center;">
+<div class="no-print" style="margin-top:40px; text-align:center; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px;">
+    <div style="margin-bottom: 15px;">
+        <label style="font-weight:bold; margin-right:10px;">Загрузить факсимиле (печать/подпись):</label>
+        <input type="file" id="fax-upload-pdf" accept="image/*" style="padding:5px;">
+    </div>
     <button onclick="window.print()" style="padding:10px 24px; font-size:16px; cursor:pointer; background:#ff9900; color:#fff; border:none; border-radius:4px; font-weight:bold;">🖨️ Сохранить в PDF</button>
     <div style="font-size:12px; color:#666; margin-top:10px;">В настройках печати выберите <b>«Сохранить как PDF»</b> и обязательно снимите галочку <b>«Верхние и нижние колонтитулы»</b>.</div>
 </div>
-<script>window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 200); });<\/script>
+<script>
+    // Логика загрузки факсимиле прямо в окне
+    document.getElementById('fax-upload-pdf').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const base64 = ev.target.result;
+            window.opener.companyFaxBase64 = base64;
+            window.opener.localStorage.setItem('scots_fax', base64);
+            
+            // Меняем картинку в текущем окне без перезагрузки
+            const signDiv = document.querySelector('.sign div:last-child');
+            let img = signDiv.querySelector('img');
+            if (!img) {
+                img = document.createElement('img');
+                img.style.cssText = 'position:absolute; left:50px; top:-30px; width:140px; opacity:0.85; mix-blend-mode: multiply;';
+                signDiv.insertBefore(img, signDiv.firstChild);
+            }
+            img.src = base64;
+            alert('Факсимиле загружено! Теперь можете сохранить PDF.');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Автоматический вызов печати
+    window.addEventListener('load', function(){ 
+        setTimeout(function(){ window.print(); }, 500); 
+    });
+<\/script>
 </body></html>`;
 }
 
