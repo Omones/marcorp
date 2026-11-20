@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         googleUrlInput.value = sessionStorage.getItem('scots_google_url');
     }
 
-    // Подгружаем ранее сохраненное факсимиле
     companyFaxBase64 = localStorage.getItem('scots_fax');
 
     handleToggleUiElements(dbSourceSelect.value);
@@ -117,12 +116,15 @@ function loadDataFromSource() {
             orders = JSON.parse(localStorage.getItem('scots_orders')) || [];
             customers = JSON.parse(localStorage.getItem('scots_customers')) || [];
             
-            // Для локального режима берем сохраненные реквизиты, если нет - тестовые
             const savedReqs = localStorage.getItem('scots_requisites');
             if (savedReqs) {
                 companyRequisites = JSON.parse(savedReqs);
             } else if (!companyRequisites.fullName) {
-                companyRequisites = { fullName: 'ООО "МАРКОРП"', address: '634061, г. Томск, ул. Тверская, 57-24', inn: '7000024389', kpp: '700001001', bank: 'СБЕРБАНК', bik: '047102651', ks: '30101810800000000651', rs: '40702810364710000212', nds: 'НДС не облагается', director: 'Марухленко И.А.' };
+                companyRequisites = { 
+                    fullName: 'ООО "МАРКОРП"', address: '634061, г. Томск, ул. Тверская, 57-24', 
+                    inn: '7000024389', kpp: '700001001', bank: 'СБЕРБАНК', bik: '047102651', 
+                    ks: '30101810800000000651', rs: '40702810364710000212', nds: 'НДС не облагается', director: 'Марухленко И.А.' 
+                };
             }
         } catch (e) {
             orders = [];
@@ -155,36 +157,11 @@ function fetchRequisitesFromGoogle() {
 
 window.handleRequisitesResponse = function(resData) {
     if (resData && resData.result === 'success') {
-        const d = resData.data;
+        // Просто берем готовый объект от Apps Script!
+        companyRequisites = resData.data;
         
-        // ВЫВОДИМ В КОНСОЛЬ, ЧТОБЫ ВИДЕТЬ, КАКИЕ КЛЮЧИ ПРИШЛИ ИЗ GOOGLE
-        console.log("=== СЫРЫЕ ДАННЫЕ РЕКВИЗИТОВ ИЗ GOOGLE ===");
-        console.log(d);
-        
-        // Строго фиксированные ключи по твоему скриншоту
-        companyRequisites = {
-            fullName: d['Полное наименование'] || d['Организация'] || '',
-            shortName: d['Краткое наименование'] || '',
-            inn: d['ИНН'] || '',
-            kpp: d['КПП'] || '',
-            address: d['Юр. адрес'] || d['Юридический адрес'] || '',
-            bank: d['Банк'] || '',
-            bik: d['БИК'] || '',
-            ks: d['Кс'] || d['К/с'] || '',
-            rs: d['Рс'] || d['Р/с'] || '',
-            nds: d['НДС'] || 'НДС не облагается',
-            director: d['ФИО'] || d['Руководитель'] || ''
-        };
-        
-        // Проверяем, что хотя бы ИНН подтянулся
-        if (!companyRequisites.inn) {
-            console.warn("ВНИМАНИЕ: ИНН не найден! Проверьте, чтобы в колонке B было написано ровно 'ИНН' (без пробелов).");
-        }
-
-        // Сохраняем в localStorage для локального режима
         localStorage.setItem('scots_requisites', JSON.stringify(companyRequisites));
-        console.log("Реквизиты успешно обработаны:", companyRequisites);
-        
+        console.log("Реквизиты загружены по координатам:", companyRequisites);
     } else {
         console.error("Не удалось загрузить реквизиты. Ответ:", resData);
         showErrorToast("Ошибка при загрузке реквизитов");
