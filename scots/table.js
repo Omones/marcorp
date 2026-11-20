@@ -62,7 +62,8 @@ function updateInlineOrderField(index, field, value) {
             shipping: orders[index].shipping,
             total: orders[index].total,
             status: orders[index].status,
-            comments: orders[index].comments
+            comments: orders[index].comments,
+            displayId: orders[index].displayId // передаем кастомный номер в Google
         };
         if (typeof sendGoogleMutation === 'function') {
             sendGoogleMutation('update', index, orderData);
@@ -80,8 +81,10 @@ function renderOrdersTable() {
     }
 
     orders.forEach((order, index) => {
-        const displayId = String(index + 1).padStart(3, '0');
-        order.displayId = displayId; 
+        // Если у заказа уже есть свой displayId (измененный вручную), используем его
+        if (!order.displayId) {
+            order.displayId = String(index + 1).padStart(3, '0');
+        }
         
         let imagesHtml = '<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">';
         if (order.items && order.items.length > 0) {
@@ -105,8 +108,8 @@ function renderOrdersTable() {
         const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
         const tr = document.createElement('tr');
         
-        // В блок действий добавлены кнопки КП (PDF) и КП (XLSX)
-        tr.innerHTML = '<td><strong>' + displayId + '</strong></td>' +
+        // Добавлен инпут для номера заказа (displayId)
+        tr.innerHTML = '<td><input type="text" style="width:100%; font-weight:bold; padding:2px; text-align:center; border:1px solid transparent; background:transparent;" value="' + order.displayId + '" onchange="updateInlineOrderField(' + index + ', \'displayId\', this.value)"></td>' +
             '<td><input type="datetime-local" style="width:100%; font-size:12px; padding:2px;" value="' + order.date + '" onchange="updateInlineOrderField(' + index + ', \'date\', this.value)"></td>' +
             '<td><input type="date" style="width:100%; font-size:12px; padding:2px;" value="' + (order.deliveryDate || '') + '" onchange="updateInlineOrderField(' + index + ', \'deliveryDate\', this.value)"></td>' +
             '<td><input type="text" style="width:100%; padding:2px;" value="' + order.customer + '" onchange="updateInlineOrderField(' + index + ', \'customer\', this.value)"></td>' +
