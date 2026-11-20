@@ -85,9 +85,10 @@ function buildProposalData(order, orderIndex) {
     }));
     const total = rows.reduce((s, r) => s + r.sum, 0);
 
+    // Берем реквизиты
     const reqs = window.companyRequisites || {};
     
-    console.log("Данные для КП (buildProposalData):", reqs);
+    console.log("Данные для КП:", reqs);
 
     return {
         number, dateStr, validUntil,
@@ -110,6 +111,7 @@ function buildProposalData(order, orderIndex) {
 }
 
 // ============ XLSX (ExcelJS) ============
+// (Оставляем без изменений, он уже настроен и работает)
 function exportOrderAsXlsx(orderIndex) {
     if (!requisitesLoaded || !companyRequisites.inn) {
         alert('Внимание: Реквизиты еще не загружены! Нажмите "Синхронизировать" в шапке сайта.');
@@ -247,11 +249,15 @@ function buildProposalHtml(d) {
         <div><b>БИК / Р/с / К/с:</b> ${escXml(d.company.bik)} / ${escXml(d.company.rs)} / ${escXml(d.company.ks)}</div>
     `;
 
-    // Получаем base64 факсимиле из глобальной переменной
+    // Проверяем, есть ли уже загруженное факсимиле
     const faxImgSrc = window.companyFaxBase64 || '';
     const faxHtml = faxImgSrc 
         ? `<img id="fax-img" src="${faxImgSrc}" style="position:absolute; left:50px; top:-30px; width:140px; opacity:0.85; mix-blend-mode: multiply;">` 
         : '';
+
+    // Логика скрытия/показа кнопок (если факсимиле уже есть, кнопку печати показываем сразу)
+    const btnPrintDisplay = faxImgSrc ? 'inline-block' : 'none';
+    const faxWarningDisplay = faxImgSrc ? 'none' : 'block';
 
     return `<!DOCTYPE html>
 <html lang="ru"><head><meta charset="UTF-8"><title>КП № ${escXml(d.number)}</title>
@@ -316,11 +322,23 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
 </div>
 
 <div class="no-print" style="margin-top:40px; text-align:center; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px;">
+    
+    <div id="warning-block" style="display: ${faxWarningDisplay}; color: #c00000; font-weight: bold; margin-bottom: 15px;">
+        ⚠️ Пожалуйста, сначала загрузите факсимиле (печать/подпись), чтобы оно попало в PDF.
+    </div>
+
     <div style="margin-bottom: 15px;">
-        <label style="font-weight:bold; margin-right:10px;">Загрузить факсимиле (печать/подпись):</label>
+        <label style="font-weight:bold; margin-right:10px;">Загрузить факсимиле:</label>
         <input type="file" id="fax-upload-pdf" accept="image/*" style="padding:5px;">
     </div>
-    <button onclick="window.print()" style="padding:10px 24px; font-size:16px; cursor:pointer; background:#ff9900; color:#fff; border:none; border-radius:4px; font-weight:bold;">🖨️ Сохранить в PDF</button>
+    
+    <button id="btn-print" onclick="window.print()" style="display: ${btnPrintDisplay}; padding:10px 24px; font-size:16px; cursor:pointer; background:#ff9900; color:#fff; border:none; border-radius:4px; font-weight:bold;">
+        🖨️ Сохранить в PDF
+    </button>
+    
+    <div style="font-size:12px; color:#666; margin-top:10px;">
+        В настройках печати выберите <b>«Сохранить как PDF»</b> и обязательно снимите галочку <b>«Верхние и нижние колонтитулы»</b>.
+    </div>
 </div>
 <script>
     document.getElementById('fax-upload-pdf').addEventListener('change', function(e) {
@@ -329,12 +347,14 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
         const reader = new FileReader();
         reader.onload = function(ev) {
             const base64 = ev.target.result;
-            // Сохраняем обратно в родительское окно
+            
+            // Сохраняем в родительское окно и LocalStorage
             if (window.opener) {
                 window.opener.companyFaxBase64 = base64;
                 window.opener.localStorage.setItem('scots_fax', base64);
             }
             
+            // Вставляем картинку в документ
             const signDiv = document.querySelector('.sign div:last-child');
             let img = signDiv.querySelector('img');
             if (!img) {
@@ -344,14 +364,15 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
                 signDiv.insertBefore(img, signDiv.firstChild);
             }
             img.src = base64;
-            alert('Факсимиле загружено! Теперь можете сохранить PDF.');
+            
+            // Меняем интерфейс: скрываем предупреждение, показываем кнопку печати
+            document.getElementById('warning-block').style.display = 'none';
+            document.getElementById('btn-print').style.display = 'inline-block';
         };
         reader.readAsDataURL(file);
     });
 
-    window.addEventListener('load', function(){ 
-        setTimeout(function(){ window.print(); }, 500); 
-    });
+    // УБРАН АВТОМАТИЧЕСКИЙ ВЫЗОВ PRINT
 <\/script>
 </body></html>`;
 }
