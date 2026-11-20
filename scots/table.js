@@ -43,10 +43,8 @@ function updateInlineOrderField(index, field, value) {
         if (typeof updateCustomersDatalist === 'function') updateCustomersDatalist();
     }
     
-    // Сохраняем локально в любом случае
     localStorage.setItem('scots_orders', JSON.stringify(orders));
     
-    // Пересчитываем маржу
     const profit = calculateProfit(orders[index]);
     const profitTd = document.getElementById('profit-td-' + index);
     if (profitTd) {
@@ -55,7 +53,6 @@ function updateInlineOrderField(index, field, value) {
     }
     updateSummaryProfit();
 
-    // Отправляем изменения в Google, если выбран этот режим
     if (isGoogle) {
         const orderData = {
             date: orders[index].date,
@@ -67,7 +64,6 @@ function updateInlineOrderField(index, field, value) {
             status: orders[index].status,
             comments: orders[index].comments
         };
-        // Вызываем функцию из orders.js
         if (typeof sendGoogleMutation === 'function') {
             sendGoogleMutation('update', index, orderData);
         }
@@ -109,7 +105,7 @@ function renderOrdersTable() {
         const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
         const tr = document.createElement('tr');
         
-        // Все инпуты разблокированы для быстрого редактирования
+        // В блок действий добавлены кнопки КП (PDF) и КП (XLSX)
         tr.innerHTML = '<td><strong>' + displayId + '</strong></td>' +
             '<td><input type="datetime-local" style="width:100%; font-size:12px; padding:2px;" value="' + order.date + '" onchange="updateInlineOrderField(' + index + ', \'date\', this.value)"></td>' +
             '<td><input type="date" style="width:100%; font-size:12px; padding:2px;" value="' + (order.deliveryDate || '') + '" onchange="updateInlineOrderField(' + index + ', \'deliveryDate\', this.value)"></td>' +
@@ -127,7 +123,9 @@ function renderOrdersTable() {
             '</td>' +
             '<td id="profit-td-' + index + '" class="' + profitClass + '">' + profit + ' р.</td>' +
             '<td style="white-space:nowrap; text-align:center;">' +
-            '<button class="btn-icon" title="Редактировать / Открыть" onclick="openOrderModal(' + index + ')"><img src="images/pencil.png"></img></button>' +
+            '<button class="btn-icon" title="Скачать КП (PDF)" onclick="exportOrderAsPdf(' + index + ')">📄</button>' +
+            '<button class="btn-icon" title="Скачать КП (Excel)" onclick="exportOrderAsXlsx(' + index + ')">📊</button>' +
+            '<button class="btn-icon" title="Редактировать / Открыть" onclick="openOrderModal(' + index + ')"><img src="images/pencil.png" style="width:16px; height:16px; vertical-align:middle;"></button>' +
             '<button class="btn-icon" title="Удалить заказ" onclick="deleteOrder(' + index + ')">🗑️</button>' +
             '</td>';
             
