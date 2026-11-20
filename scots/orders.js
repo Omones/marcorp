@@ -2,7 +2,7 @@ let orders = [];
 let customers = [];
 let currentEditingOrderId = null;
 let companyRequisites = {}; 
-let companyFaxBase64 = null; // <--- НОВОЕ: Хранилище факсимиле
+let companyFaxBase64 = null;
 
 const topCreateBtn = document.getElementById('top-create-btn');
 const orderModal = document.getElementById('order-modal');
@@ -25,10 +25,9 @@ const modalAddItemBtn = document.getElementById('modal-add-item-btn');
 const dbSourceSelect = document.getElementById('db-source-select');
 const googleUrlInput = document.getElementById('google-url-input');
 const syncGoogleBtn = document.getElementById('sync-google-btn');
-const faxFileInput = document.getElementById('fax-file-input'); // <--- НОВОЕ
 
-// --- ФУНКЦИИ УВЕДОМЛЕНИЙ (TOAST) ---
-function showLoadingToast(text = "Синхронизация с Google...") {
+// --- УВЕДОМЛЕНИЯ ---
+function showLoadingToast(text = "Синхронизация...") {
     const container = document.getElementById('toast-container');
     if (!container) return;
     container.innerHTML = ''; 
@@ -39,7 +38,7 @@ function showLoadingToast(text = "Синхронизация с Google...") {
     container.appendChild(toast);
 }
 
-function showSuccessToast(text = "Успешно сохранено!") {
+function showSuccessToast(text = "Успешно!") {
     const container = document.getElementById('toast-container');
     if (!container) return;
     const toast = document.getElementById('sync-toast') || document.createElement('div');
@@ -73,27 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
         googleUrlInput.value = sessionStorage.getItem('scots_google_url');
     }
 
-    // Загружаем факсимиле из локального хранилища при старте
+    // Подгружаем ранее сохраненное факсимиле
     companyFaxBase64 = localStorage.getItem('scots_fax');
-    if (companyFaxBase64) {
-        showSuccessToast("Факсимиле загружено из памяти");
-    }
-
-    // Обработчик загрузки нового факсимиле
-    if (faxFileInput) {
-        faxFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                companyFaxBase64 = ev.target.result;
-                localStorage.setItem('scots_fax', companyFaxBase64);
-                showSuccessToast("Факсимиле успешно загружено и сохранено!");
-            };
-            reader.readAsDataURL(file);
-            faxFileInput.value = ''; // сбрасываем инпут
-        });
-    }
 
     handleToggleUiElements(dbSourceSelect.value);
     loadDataFromSource();
@@ -136,6 +116,10 @@ function loadDataFromSource() {
         try {
             orders = JSON.parse(localStorage.getItem('scots_orders')) || [];
             customers = JSON.parse(localStorage.getItem('scots_customers')) || [];
+            // Если локально нет реквизитов, берем тестовые
+            if (!companyRequisites.fullName) {
+                companyRequisites = { fullName: 'ООО "МАРКОРП"', address: '634061, г. Томск...', inn: '7000024389', kpp: '700001001', bank: 'СБЕРБАНК', bik: '047102651', ks: '30101810800000000651', rs: '40702810364710000212', nds: 'НДС не облагается', director: 'Марухленко И.А.' };
+            }
         } catch (e) {
             orders = [];
             customers = [];
@@ -168,19 +152,32 @@ function fetchRequisitesFromGoogle() {
 window.handleRequisitesResponse = function(resData) {
     if (resData && resData.result === 'success') {
         const d = resData.data;
-        companyRequisites = {
-            fullName: d['Полное наименование'] || '',
-            shortName: d['Краткое наименование'] || '',
-            inn: d['ИНН'] || '',
-            kpp: d['КПП'] || '',
-            address: d['Юр. адрес'] || '',
-            bank: d['Банк'] || '',
-            bik: d['БИК'] || '',
-            ks: d['Кс'] || '',
-            rs: d['Рс'] || '',
-            nds: d['НДС'] || '',
-            director: d['ФИО'] || ''
+        
+        // Помогаем найти ключи, если они вдруг с пробелами или в другом регистре
+        const findKey = (possibleKeys) => {
+            for (let k in d) {
+                if (possibleKeys.includes(k.trim().toLowerCase())) return d[k];
+            }
+            return '';
         };
+
+        companyRequisites = {
+            fullName: findKey(['полное наименование', 'организация', 'наименование']),
+            shortName: findKey(['краткое наименование', 'краткое']),
+            inn: findKey(['инн']),
+            kpp: findKey(['кпп']),
+            address: findKey(['юр. адрес', 'юридический адрес', 'адрес']),
+            bank: findKey(['банк', 'наименование банка']),
+            bik: findKey(['бик']),
+            ks: findKey(['кс', 'к/с', 'корсчет']),
+            rs: findKey(['рс', 'р/с', 'расчетный счет']),
+            nds: findKey(['ндс']),
+            director: findKey(['фио', 'руководитель', 'генеральный директор'])
+        };
+        
+        // Сохраняем в localStorage для локального режима
+        localStorage.setItem('scots_requisites', JSON.stringify(companyRequisites));
+        console.log("Реквизиты из Google успешно загружены:", companyRequisites);
     } else {
         console.error("Не удалось загрузить реквизиты");
     }
@@ -220,7 +217,7 @@ function fetchGoogleSpreadsheetData() {
         return;
     }
 
-    showLoadingToast("Загрузка данных из Google...");
+    showLoadingToast("Загрузка данных...");
 
     const oldScript = document.getElementById('google-jsonp-script');
     if (oldScript) oldScript.remove();
@@ -232,7 +229,7 @@ function fetchGoogleSpreadsheetData() {
     script.id = 'google-jsonp-script';
     script.src = jsonpUrl;
     script.onerror = function() {
-        showErrorToast('Не удалось выполнить запрос к скрипту Google. Проверьте URL.');
+        showErrorToast('Не удалось выполнить запрос. Проверьте URL.');
     };
     document.body.appendChild(script);
 }
@@ -264,7 +261,7 @@ function sendGoogleMutation(actionType, index, orderData) {
     document.body.appendChild(script);
 }
 
-// --- ПАРСИНГ И ФОРМАТИРОВАНИЕ ДАТ ---
+// --- ПАРСИНГ ---
 function formatDateForInput(dateVal) {
     if (!dateVal) return "";
     if (dateVal instanceof Date) {
@@ -321,6 +318,9 @@ function parseGoogleDataArray(matrix) {
             }
         }
 
+        // Если в таблице еще нет колонки с displayId, используем стандартный индекс
+        const displayId = row[9] ? String(row[9]).trim() : String(i).padStart(3, '0');
+
         newOrders.push({
             date: date,
             deliveryDate: deliveryDate,
@@ -329,7 +329,8 @@ function parseGoogleDataArray(matrix) {
             shipping: shipping,
             total: total,
             status: status,
-            comments: comments
+            comments: comments,
+            displayId: displayId
         });
     }
     orders = newOrders;
@@ -338,7 +339,7 @@ function parseGoogleDataArray(matrix) {
     if (typeof renderOrdersTable === 'function') renderOrdersTable();
 }
 
-// --- РАСЧЕТ ПРИБЫЛИ ---
+// --- РАСЧЕТ ---
 function calculateProfit(order) {
     if (!order || !order.items) return 0;
     const totalCostOfItems = order.items.reduce(
@@ -350,7 +351,7 @@ function calculateProfit(order) {
 }
 window.calculateProfit = calculateProfit;
 
-// --- РАБОТА С МОДАЛЬНЫМ ОКНОМ ---
+// --- МОДАЛЬНОЕ ОКНО ---
 function openOrderModal(index) {
     currentEditingOrderId = index;
     if (index === null) {
@@ -403,6 +404,11 @@ async function handleSaveOrder(e) {
         status: modalStatusSelect.value,
         comments: modalCommentsTextarea.value.trim()
     };
+
+    // Если редактируем, сохраняем старый displayId
+    if (currentEditingOrderId !== null) {
+        orderData.displayId = orders[currentEditingOrderId].displayId;
+    }
 
     const source = dbSourceSelect.value;
 
