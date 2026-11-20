@@ -86,9 +86,6 @@ function buildProposalData(order, orderIndex) {
     const total = rows.reduce((s, r) => s + r.sum, 0);
 
     const reqs = window.companyRequisites || {};
-    
-    // Выводим в консоль перед генерацией, чтобы увидеть, что реально пришло
-    console.log("Данные для КП (buildProposalData):", reqs);
 
     return {
         number, dateStr, validUntil,
@@ -112,6 +109,12 @@ function buildProposalData(order, orderIndex) {
 
 // ============ XLSX (ExcelJS) ============
 function exportOrderAsXlsx(orderIndex) {
+    // Проверка на загрузку реквизитов
+    if (!requisitesLoaded || !companyRequisites.inn) {
+        alert('Внимание: Реквизиты еще не загружены! Нажмите "Синхронизировать" в шапке сайта и попробуйте снова.');
+        return;
+    }
+
     const order = orders[orderIndex];
     if (!order) return;
     const d = buildProposalData(order, orderIndex);
@@ -285,7 +288,7 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
         <th style="width:52px;">Кол-во</th>
         <th style="width:38px;">Ед.</th>
         <th style="width:82px;">Цена</th>
-        <th style="width:92px;">Сумма</th>
+        <th style="width:92px">Сумма</th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
 </table>
@@ -349,6 +352,12 @@ table.totals td:last-child { text-align:right; border-bottom:1px solid #555; whi
 }
 
 function exportOrderAsPdf(orderIndex) {
+    // Проверка на загрузку реквизитов
+    if (!requisitesLoaded || !companyRequisites.inn) {
+        alert('Внимание: Реквизиты еще не загружены! Нажмите "Синхронизировать" в шапке сайта и попробуйте снова.');
+        return;
+    }
+
     const order = orders[orderIndex];
     if (!order) return;
     const d = buildProposalData(order, orderIndex);
